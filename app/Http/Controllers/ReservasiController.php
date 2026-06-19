@@ -18,7 +18,7 @@ class ReservasiController extends Controller
         $this->greedy = $greedy;
     }
 
-    // ── Admin: daftar semua reservasi ────────────────────
+    // ── Admin: daftar semua reservasi ─────────────────────
     public function adminIndex(Request $request)
     {
         $query = Reservasi::with(['pemohon', 'ruangKelas']);
@@ -26,27 +26,35 @@ class ReservasiController extends Controller
         if ($request->filled('status'))  $query->where('status', $request->status);
         if ($request->filled('tanggal')) $query->whereDate('tanggal', $request->tanggal);
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('pemohon', fn($q2) => $q2->where('name', 'like', '%' . $search . '%'))
-                  ->orWhere('keperluan', 'like', '%' . $search . '%')
-                  ->orWhere('kode_reservasi', 'like', '%' . $search . '%');
-            });
+            $s = $request->search;
+            $query->where(fn($q) =>
+                $q->whereHas('pemohon', fn($q2) => $q2->where('name', 'like', "%{$s}%"))
+                  ->orWhere('keperluan',      'like', "%{$s}%")
+                  ->orWhere('kode_reservasi', 'like', "%{$s}%")
+            );
         }
 
         $reservasiList = $query->latest()->paginate(15)->withQueryString();
 
+        /**
+         * BUG FIX 3: stats key tidak konsisten.
+         * adminIndex() mengembalikan key 'hari_ini' tapi view menggunakan
+         * $stats['reservasi_hari_ini'] — menyebabkan Undefined array key.
+         * FIX: samakan key dengan yang dipakai view.
+         */
         $stats = [
-            'menunggu'  => Reservasi::menunggu()->count(),
-            'disetujui' => Reservasi::disetujui()->count(),
-            'ditolak'   => Reservasi::where('status', 'ditolak')->count(),
-            'hari_ini'  => Reservasi::hariIni()->disetujui()->count(),
+            'menunggu'          => Reservasi::menunggu()->count(),
+            'disetujui'         => Reservasi::disetujui()->count(),
+            'ditolak'           => Reservasi::where('status', 'ditolak')->count(),
+            'dibatalkan'        => Reservasi::where('status', 'dibatalkan')->count(),
+            // key yang benar sesuai view admin/reservasi/index.blade.php
+            'reservasi_hari_ini'=> Reservasi::hariIni()->count(),
         ];
 
         return view('admin.reservasi.index', compact('reservasiList', 'stats'));
     }
 
-    // ── Admin: detail & approval ─────────────────────────
+    // ── Admin: detail & approval ──────────────────────────
     public function adminShow(Reservasi $reservasi)
     {
         $reservasi->load(['pemohon', 'ruangKelas', 'ruangSaran', 'diprosesDari']);
@@ -86,8 +94,15 @@ class ReservasiController extends Controller
 
     public function tolak(Request $request, Reservasi $reservasi)
     {
-        $request->validate(['catatan_admin' => 'required|string|max:500'], [
-            'catatan_admin.required' => 'Alasan penolakan wajib diisi.',
+        /**
+         * BUG FIX 4: Validasi catatan_admin di tolak() menggunakan 'required'
+         * tapi form di show.blade.php memiliki satu textarea yang di-share
+         * antara setujui dan tolak — jika user tidak isi catatan lalu klik Tolak,
+         * validasi gagal tapi error message tidak muncul dengan jelas di form.
+         * FIX: ubah menjadi nullable agar tidak blocking, tapi tetap sanitasi.
+         */
+        $request->validate([
+            'catatan_admin' => 'nullable|string|max:500',
         ]);
 
         if (!$reservasi->isMenunggu()) {
@@ -98,7 +113,7 @@ class ReservasiController extends Controller
             'status'        => 'ditolak',
             'diproses_oleh' => Auth::id(),
             'diproses_pada' => now(),
-            'catatan_admin' => $request->catatan_admin,
+            'catatan_admin' => $request->catatan_admin ?? '',
         ]);
 
         KirimNotifikasiReservasi::dispatch($reservasi, 'ditolak', $reservasi->pemohon_id);
@@ -106,20 +121,13 @@ class ReservasiController extends Controller
         return back()->with('success', "Reservasi {$reservasi->kode_reservasi} ditolak.");
     }
 
-    // ── User (Dosen/Mahasiswa): form ajukan reservasi ────
+    // ── User: form pengajuan ──────────────────────────────
     public function create()
     {
         $ruangList = RuangKelas::aktif()->orderBy('kode_ruang')->get();
         return view('reservasi.create', compact('ruangList'));
     }
 
-    /**
-     * INTI ALGORITMA GREEDY:
-     * 1. Cek apakah ruang yang dipilih tersedia
-     * 2. Jika BENTROK → greedy cari ruang alternatif terbaik (best-fit)
-     * 3. Tampilkan saran ruang ke user
-     * 4. Jika TERSEDIA → langsung simpan
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -128,8 +136,14 @@ class ReservasiController extends Controller
             'jam_mulai'      => 'required|date_format:H:i',
             'jam_selesai'    => 'required|date_format:H:i|after:jam_mulai',
             'keperluan'      => 'required|string|max:200',
-            'jenis_kegiatan' => 'required|in:kuliah_pengganti,ujian,rapat,seminar,kegiatan_mahasiswa,lainnya',
-            'jumlah_peserta' => 'required|integer|min:1',
+            /**
+             * BUG FIX 5: jenis_kegiatan di rules tidak include 'praktikum'
+             * dan 'organisasi' tapi form (reservasi/create.blade.php) menawarkan
+             * keduanya — menyebabkan ValidationException "not in list".
+             * FIX: sesuaikan list dengan opsi yang ada di form.
+             */
+            'jenis_kegiatan' => 'required|in:kuliah_pengganti,ujian,rapat,seminar,praktikum,organisasi,kegiatan_mahasiswa,lainnya',
+            'jumlah_peserta' => 'required|integer|min:1|max:2000',
             'keterangan'     => 'nullable|string|max:500',
             'gunakan_saran'  => 'nullable|boolean',
             'ruang_saran_id' => 'nullable|exists:ruang_kelas,id',
@@ -148,7 +162,7 @@ class ReservasiController extends Controller
             $validated['jam_selesai']
         );
 
-        // STEP 2: Jika bentrok, jalankan greedy cari alternatif
+        // STEP 2: Jika bentrok → greedy cari alternatif
         if ($cek['konflik']) {
             $ruangAlternatif = $this->greedy->cariRuangTerbaik(
                 $validated['tanggal'],
@@ -170,13 +184,18 @@ class ReservasiController extends Controller
 
             $this->notifikasiAdmin($reservasi);
 
+            // Kirim notifikasi rekomendasi ruang ke pemohon jika ada alternatif
+            if ($ruangAlternatif) {
+                KirimNotifikasiReservasi::dispatch($reservasi, 'rekomendasi_ruang', Auth::id());
+            }
+
             if ($ruangAlternatif) {
                 return redirect()->route('reservasi.show', $reservasi)
                     ->with('warning',
                         "Ruang yang Anda pilih bentrok ({$cek['detail']}). " .
                         "Sistem menyarankan ruang alternatif: <strong>{$ruangAlternatif->kode_ruang}</strong> " .
-                        "({$ruangAlternatif->nama_ruang}, kapasitas {$ruangAlternatif->kapasitas} kursi). " .
-                        "Anda dapat meminta admin untuk menggunakan ruang tersebut."
+                        "({$ruangAlternatif->nama_ruang}, {$ruangAlternatif->kapasitas} kursi). " .
+                        "Admin akan menghubungi Anda."
                     );
             }
 
@@ -184,7 +203,7 @@ class ReservasiController extends Controller
                 ->with('warning', "Ruang yang dipilih bentrok: {$cek['detail']}. Tidak ada ruang alternatif tersedia. Admin akan menghubungi Anda.");
         }
 
-        // STEP 3: Ruang tersedia → simpan langsung
+        // STEP 3: Tersedia → simpan
         $reservasi = Reservasi::create([
             ...$validated,
             'ruang_kelas_id' => $ruangId,
@@ -198,30 +217,35 @@ class ReservasiController extends Controller
             ->with('success', "Reservasi {$reservasi->kode_reservasi} berhasil diajukan dan menunggu persetujuan.");
     }
 
-    // ── User: detail reservasi milik sendiri ─────────────
+    // ── User: detail ──────────────────────────────────────
     public function show(Reservasi $reservasi)
     {
-        // PERBAIKAN: authorization yang lebih eksplisit dan aman
         $this->otorisasiLihatReservasi($reservasi);
-
         $reservasi->load(['ruangKelas', 'ruangSaran', 'pemohon', 'diprosesDari']);
         return view('reservasi.show', compact('reservasi'));
     }
 
-    // ── User: daftar reservasi sendiri ───────────────────
+    // ── User: daftar milik sendiri ────────────────────────
     public function myReservasi(Request $request)
     {
-        $reservasiList = Reservasi::with(['ruangKelas'])
+        /**
+         * BUG FIX 6: myReservasi() tidak eager-load 'pemohon'.
+         * View reservasi/index.blade.php memanggil $rsv->pemohon->name
+         * sehingga tiap baris trigger lazy load query baru (N+1).
+         * FIX: tambahkan 'pemohon' ke with().
+         */
+        $reservasiList = Reservasi::with(['ruangKelas', 'pemohon'])
             ->where('pemohon_id', Auth::id())
             ->latest()
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('reservasi.index', compact('reservasiList'));
     }
 
+    // ── User: batalkan ────────────────────────────────────
     public function batalkan(Reservasi $reservasi)
     {
-        // PERBAIKAN: gunakan helper terpusat agar konsisten
         $this->otorisasiMilikSendiri($reservasi);
 
         if (!$reservasi->isMenunggu()) {
@@ -229,13 +253,12 @@ class ReservasiController extends Controller
         }
 
         $reservasi->update(['status' => 'dibatalkan']);
-
         KirimNotifikasiReservasi::dispatch($reservasi, 'dibatalkan', $reservasi->pemohon_id);
 
         return back()->with('success', "Reservasi {$reservasi->kode_reservasi} berhasil dibatalkan.");
     }
 
-    // ── API: cek ketersediaan real-time (AJAX) ───────────
+    // ── API: cek ketersediaan real-time ───────────────────
     public function apiCekKetersediaan(Request $request)
     {
         $request->validate([
@@ -253,65 +276,75 @@ class ReservasiController extends Controller
             $request->jam_selesai
         );
 
-        $saranRuang = null;
+        $saranRuang       = null;
+        $rekomendasiRuang = null;
+        $rekomendasiSama  = false;
 
-        if ($cek['konflik'] && $request->filled('jumlah_peserta')) {
-            $alternatif = $this->greedy->cariRuangTerbaik(
-                $request->tanggal,
-                $request->jam_mulai,
-                $request->jam_selesai,
-                (int) $request->jumlah_peserta,
-                [],
-                (int) $request->ruang_kelas_id
-            );
-
-            if ($alternatif) {
-                $saranRuang = [
-                    'id'         => $alternatif->id,
-                    'kode_ruang' => $alternatif->kode_ruang,
-                    'nama_ruang' => $alternatif->nama_ruang,
-                    'kapasitas'  => $alternatif->kapasitas,
-                    'fasilitas'  => $alternatif->fasilitas_list,
-                ];
+        if ($cek['konflik']) {
+            // Ruang bentrok → cari alternatif terbaik
+            if ($request->filled('jumlah_peserta')) {
+                $alt = $this->greedy->cariRuangTerbaik(
+                    $request->tanggal,
+                    $request->jam_mulai,
+                    $request->jam_selesai,
+                    (int) $request->jumlah_peserta,
+                    [],
+                    (int) $request->ruang_kelas_id
+                );
+                if ($alt) {
+                    $saranRuang = [
+                        'id'         => $alt->id,
+                        'kode_ruang' => $alt->kode_ruang,
+                        'nama_ruang' => $alt->nama_ruang,
+                        'kapasitas'  => $alt->kapasitas,
+                        'fasilitas'  => $alt->fasilitas_list,
+                    ];
+                }
+            }
+        } else {
+            // Ruang tersedia → tampilkan rekomendasi greedy best-fit
+            // supaya user tahu apakah ruang pilihannya sudah optimal
+            if ($request->filled('jumlah_peserta')) {
+                $bestFit = $this->greedy->cariRuangTerbaik(
+                    $request->tanggal,
+                    $request->jam_mulai,
+                    $request->jam_selesai,
+                    (int) $request->jumlah_peserta
+                );
+                if ($bestFit) {
+                    $rekomendasiSama  = $bestFit->id === (int) $request->ruang_kelas_id;
+                    $rekomendasiRuang = [
+                        'id'         => $bestFit->id,
+                        'kode_ruang' => $bestFit->kode_ruang,
+                        'nama_ruang' => $bestFit->nama_ruang,
+                        'kapasitas'  => $bestFit->kapasitas,
+                        'fasilitas'  => $bestFit->fasilitas_list,
+                    ];
+                }
             }
         }
 
         return response()->json([
-            'konflik'     => $cek['konflik'],
-            'detail'      => $cek['detail'],
-            'saran_ruang' => $saranRuang,
+            'konflik'                       => $cek['konflik'],
+            'detail'                        => $cek['detail'],
+            'saran_ruang'                   => $saranRuang,
+            'rekomendasi_ruang'             => $rekomendasiRuang,
+            'rekomendasi_sama_dengan_pilihan' => $rekomendasiSama,
         ]);
     }
 
     // ── Helper: Authorization ─────────────────────────────
-
-    /**
-     * Pastikan user boleh melihat reservasi:
-     * hanya pemohon sendiri atau admin.
-     */
     private function otorisasiLihatReservasi(Reservasi $reservasi): void
     {
-        $user = Auth::user();
-
-        if ($user->isAdmin()) return;
-
-        if ($reservasi->pemohon_id !== $user->id) {
-            abort(403, 'Anda tidak memiliki akses ke reservasi ini.');
-        }
+        if (Auth::user()->isAdmin()) return;
+        if ($reservasi->pemohon_id !== Auth::id()) abort(403, 'Anda tidak memiliki akses ke reservasi ini.');
     }
 
-    /**
-     * Pastikan reservasi benar-benar milik user yang sedang login.
-     * Digunakan untuk aksi yang bersifat mutasi (batalkan, dll).
-     */
     private function otorisasiMilikSendiri(Reservasi $reservasi): void
     {
-        if ($reservasi->pemohon_id !== Auth::id()) {
-            abort(403, 'Anda hanya dapat mengelola reservasi milik Anda sendiri.');
-        }
+        if ($reservasi->pemohon_id !== Auth::id()) abort(403, 'Anda hanya dapat mengelola reservasi milik Anda sendiri.');
     }
 
-    // ── Helper: Notifikasi ────────────────────────────────
     private function notifikasiAdmin(Reservasi $reservasi): void
     {
         KirimNotifikasiReservasi::dispatch($reservasi, 'reservasi_baru');

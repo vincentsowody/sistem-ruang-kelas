@@ -108,7 +108,11 @@
             </div>
 
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <input type="checkbox" name="is_active" value="1" id="isActive" checked
+                {{-- Hidden fallback agar admin juga bisa membuat user langsung nonaktif
+                     (uncheck) — tanpa ini uncheck tidak berpengaruh apa pun. --}}
+                <input type="hidden" name="is_active" value="0">
+                <input type="checkbox" name="is_active" value="1" id="isActive"
+                    {{ old('is_active', true) ? 'checked' : '' }}
                     class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                 <label for="isActive" class="text-sm text-gray-700 cursor-pointer">
                     Akun aktif (pengguna dapat login)

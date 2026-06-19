@@ -192,6 +192,7 @@ public function admin()
             ->orderBy('created_at', 'desc')
             ->limit(6)
             ->get();
+        $reservasiTerbaru = $riwayat; // alias untuk view baru
 
         // Notifikasi belum dibaca
         $notifikasiBaru = $mahasiswa->notifikasi()
@@ -208,7 +209,7 @@ public function admin()
 
         return view('dashboard.mahasiswa', compact(
             'stats', 'reservasiMendatang', 'reservasiMenunggu',
-            'riwayat', 'notifikasiBaru', 'ruangTersedia'
+            'riwayat', 'reservasiTerbaru', 'notifikasiBaru', 'ruangTersedia'
         ));
     }
 }

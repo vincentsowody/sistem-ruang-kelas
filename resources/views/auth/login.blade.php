@@ -1,57 +1,58 @@
 <x-guest-layout>
-    {{-- Pesan info saat user mencoba akses /register --}}
-    @if(session('info'))
-    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex items-start gap-2">
-        <svg class="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>
-        <span>{{ session('info') }}</span>
+<x-auth-session-status class="mb-4" :status="session('status')"/>
+
+<div class="mb-7">
+    <p class="text-slate-400 text-sm font-medium mb-1">Portal Akademik</p>
+    <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Masuk ke SiRuang</h2>
+    <p class="text-slate-500 text-sm mt-1">Kelola reservasi ruang kelas dengan mudah</p>
+</div>
+
+<form method="POST" action="{{ route('login') }}" class="space-y-4">
+    @csrf
+    <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Email</label>
+        <div class="field-icon">
+            <i class="fa-solid fa-envelope icon"></i>
+            <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                placeholder="nama@kampus.ac.id"
+                class="field {{ $errors->has('email')?'error':'' }}">
+        </div>
+        @error('email')<p class="text-red-500 text-xs mt-1.5 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</p>@enderror
     </div>
-    @endif
-
-    {{-- Status session (misal: setelah reset password) --}}
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('login') }}">
-        @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email"
-                          :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+    <div>
+        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-2">Password</label>
+        <div class="field-icon">
+            <i class="fa-solid fa-lock icon"></i>
+            <input id="pwdInput" type="password" name="password" required
+                placeholder="••••••••"
+                class="field pr-12 {{ $errors->has('password')?'error':'' }}">
+            <button type="button" onclick="togglePwd()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1">
+                <i id="pwdEye" class="fa-solid fa-eye text-sm"></i>
+            </button>
         </div>
-
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full"
-                          type="password" name="password"
-                          required autocomplete="current-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox"
-                       class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
-                       name="remember">
-                <span class="ml-2 text-sm text-gray-600">{{ __('Ingat saya') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            {{-- Link lupa password dihapus — reset dilakukan oleh admin --}}
-            <x-primary-button class="ml-3">
-                {{ __('Masuk') }}
-            </x-primary-button>
-        </div>
-    </form>
-
-    {{-- Informasi: tidak ada registrasi mandiri --}}
-    <div class="mt-6 text-center text-xs text-gray-400">
-        Belum punya akun? Hubungi administrator kampus.
+        @error('password')<p class="text-red-500 text-xs mt-1.5 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i>{{ $message }}</p>@enderror
     </div>
+    <div class="flex items-center justify-between">
+        <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="remember" class="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+            <span class="text-sm text-slate-600">Ingat saya</span>
+        </label>
+    </div>
+    <button type="submit" class="btn-primary w-full justify-center py-3 mt-2 text-base rounded-2xl">
+        <i class="fa-solid fa-right-to-bracket"></i> Masuk
+    </button>
+</form>
+
+<p class="text-center text-xs text-slate-400 mt-6">
+    Belum punya akun? Hubungi <span class="font-semibold text-slate-500">administrator</span>.
+</p>
+
+<script>
+function togglePwd(){
+    const i=document.getElementById('pwdInput'),e=document.getElementById('pwdEye');
+    i.type=i.type==='password'?'text':'password';
+    e.classList.toggle('fa-eye'); e.classList.toggle('fa-eye-slash');
+}
+</script>
 </x-guest-layout>

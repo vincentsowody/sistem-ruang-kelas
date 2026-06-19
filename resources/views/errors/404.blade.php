@@ -1,7 +1,6 @@
 @extends('errors.layout')
-
 @section('code', '404')
 @section('title', 'Halaman Tidak Ditemukan')
-@section('icon-bg', 'bg-yellow-500')
-@section('icon', 'fa-solid fa-magnifying-glass')
-@section('description', 'Halaman yang Anda cari tidak ditemukan. Mungkin sudah dihapus, dipindahkan, atau alamatnya salah ketik.')
+@section('description', 'Halaman yang Anda cari tidak ada atau sudah dipindahkan. Periksa kembali URL atau kembali ke dashboard.')
+@section('icon', 'fa-solid fa-map-location-dot')
+@section('icon-bg', 'bg-amber-500')

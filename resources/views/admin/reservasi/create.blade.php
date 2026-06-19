@@ -165,6 +165,43 @@
                     </div>
                 </div>
 
+                {{-- Rekomendasi ruang terbaik (saat ruang tersedia tapi bukan best-fit) --}}
+                <div id="panelRekomendasi" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-lightbulb text-blue-500 mt-0.5 text-lg"></i>
+                        <div class="flex-1">
+                            <p class="font-semibold text-blue-800 text-sm">
+                                💡 Rekomendasi Greedy Best-Fit
+                            </p>
+                            <p id="detailRekomendasi" class="text-blue-700 text-xs mt-1"></p>
+
+                            <div class="mt-3 bg-white rounded-xl border border-blue-200 p-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="font-bold text-gray-800 text-sm" id="rekKode"></p>
+                                        <p class="text-xs text-gray-500 mt-0.5" id="rekNama"></p>
+                                        <p class="text-xs text-gray-400 mt-0.5" id="rekKapasitas"></p>
+                                        <p class="text-xs text-gray-400" id="rekFasilitas"></p>
+                                    </div>
+                                    <span class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1.5 rounded-full flex-shrink-0">
+                                        <i class="fa-solid fa-star mr-1"></i>Best-Fit
+                                    </span>
+                                </div>
+                            </div>
+
+                            <label class="flex items-center gap-3 mt-3 cursor-pointer bg-white rounded-xl border border-blue-200 p-3 hover:bg-blue-50 transition" id="pilihanRekomendasi">
+                                <input type="checkbox" name="gunakan_saran" id="gunakanRekSaran" value="1"
+                                    class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                                <input type="hidden" name="ruang_saran_id" id="ruangRekSaranId" value="">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">Gunakan ruang rekomendasi ini</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Centang untuk mengajukan dengan ruang yang lebih optimal</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Konflik tanpa saran --}}
                 <div id="panelKonflikSaja" class="hidden bg-red-50 border border-red-200 rounded-xl p-4">
                     <div class="flex items-start gap-3">
@@ -182,10 +219,10 @@
                     <div class="flex items-start gap-3">
                         <i class="fa-solid fa-wand-magic-sparkles text-amber-500 mt-0.5 text-lg"></i>
                         <div class="flex-1">
-                            <p class="font-semibold text-amber-800 text-sm">
+                            <p id="judulSaran" class="font-semibold text-amber-800 text-sm">
                                 Ruang Pilihan Bentrok — Sistem Menyarankan Ruang Alternatif
                             </p>
-                            <p id="detailKonflikSaran" class="text-amber-700 text-xs mt-1"></p>
+                            <p id="detailSaran" class="text-amber-700 text-xs mt-1"></p>
 
                             <div class="mt-3 bg-white rounded-xl border border-amber-200 p-3">
                                 <div class="flex items-center justify-between">
@@ -201,7 +238,7 @@
                                 </div>
                             </div>
 
-                            <label class="flex items-center gap-3 mt-3 cursor-pointer bg-white rounded-xl border border-amber-200 p-3 hover:bg-amber-50 transition">
+                            <label id="pilihanSaran" class="flex items-center gap-3 mt-3 cursor-pointer bg-white rounded-xl border border-amber-200 p-3 hover:bg-amber-50 transition">
                                 <input type="checkbox" name="gunakan_saran" id="gunakanSaran" value="1"
                                     class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500">
                                 <input type="hidden" name="ruang_saran_id" id="ruangSaranId" value="">
@@ -243,6 +280,25 @@ function cekKetersediaan() {
     cekTimer = setTimeout(_doCheck, 600);
 }
 
+function tampilkanRuangSaran(ruang, judul, detail, bisaDipakai) {
+    document.getElementById('judulSaran').textContent = judul;
+    document.getElementById('detailSaran').textContent = detail;
+    document.getElementById('saranKode').textContent = ruang.kode_ruang;
+    document.getElementById('saranNama').textContent = ruang.nama_ruang;
+    document.getElementById('saranKapasitas').textContent = 'Kapasitas: ' + ruang.kapasitas + ' kursi';
+    document.getElementById('saranFasilitas').textContent = 'Fasilitas: ' + (ruang.fasilitas || '-');
+
+    const pilihanSaran = document.getElementById('pilihanSaran');
+    const gunakanSaran = document.getElementById('gunakanSaran');
+    const ruangSaranId = document.getElementById('ruangSaranId');
+
+    gunakanSaran.checked = false;
+    ruangSaranId.value = bisaDipakai ? ruang.id : '';
+    pilihanSaran.classList.toggle('hidden', !bisaDipakai);
+
+    document.getElementById('panelSaran').classList.remove('hidden');
+}
+
 function _doCheck() {
     const ruangId    = document.getElementById('ruangInput').value;
     const tanggal    = document.getElementById('tanggalInput').value;
@@ -255,11 +311,17 @@ function _doCheck() {
     const pTersedia  = document.getElementById('panelTersedia');
     const pSaran     = document.getElementById('panelSaran');
     const pKonflik   = document.getElementById('panelKonflikSaja');
+    const gunakanSaran = document.getElementById('gunakanSaran');
+    const ruangSaranId = document.getElementById('ruangSaranId');
 
     // Sembunyikan semua panel dulu
     [panel, pLoading, pTersedia, pSaran, pKonflik].forEach(el => {
         if (el) el.classList.add('hidden');
     });
+    const pRekReset = document.getElementById('panelRekomendasi');
+    if (pRekReset) pRekReset.classList.add('hidden');
+    gunakanSaran.checked = false;
+    ruangSaranId.value = '';
 
     if (!ruangId || !tanggal || !jamMulai || !jamSelesai) return;
 
@@ -273,25 +335,43 @@ function _doCheck() {
         jam_mulai:      jamMulai,
         jam_selesai:    jamSelesai,
         jumlah_peserta: peserta,
-        _token:         '{{ csrf_token() }}'
-    }))
+    }), { method: 'GET' })
     .then(r => r.json())
     .then(data => {
         pLoading.classList.add('hidden');
 
+        const pRek = document.getElementById('panelRekomendasi');
+
         if (!data.konflik) {
             pTersedia.classList.remove('hidden');
+
+            // Tampilkan panel rekomendasi greedy jika ada dan berbeda dari pilihan user
+            if (data.rekomendasi_ruang && !data.rekomendasi_sama_dengan_pilihan) {
+                const r = data.rekomendasi_ruang;
+                document.getElementById('rekKode').textContent      = r.kode_ruang;
+                document.getElementById('rekNama').textContent      = r.nama_ruang;
+                document.getElementById('rekKapasitas').textContent = 'Kapasitas: ' + r.kapasitas + ' kursi';
+                document.getElementById('rekFasilitas').textContent = 'Fasilitas: ' + (r.fasilitas || '-');
+                document.getElementById('detailRekomendasi').textContent =
+                    'Ruang Anda tersedia, namun sistem menemukan ruang yang lebih pas untuk ' + peserta + ' peserta Anda.';
+                document.getElementById('ruangRekSaranId').value   = r.id;
+                document.getElementById('gunakanRekSaran').checked = false;
+                pRek.classList.remove('hidden');
+            } else {
+                pRek && pRek.classList.add('hidden');
+            }
             return;
         }
 
+        // Ruang konflik
+        pRek && pRek.classList.add('hidden');
         if (data.saran_ruang) {
-            document.getElementById('detailKonflikSaran').textContent = data.detail;
-            document.getElementById('saranKode').textContent      = data.saran_ruang.kode_ruang;
-            document.getElementById('saranNama').textContent      = data.saran_ruang.nama_ruang;
-            document.getElementById('saranKapasitas').textContent = 'Kapasitas: ' + data.saran_ruang.kapasitas + ' kursi';
-            document.getElementById('saranFasilitas').textContent = 'Fasilitas: ' + (data.saran_ruang.fasilitas || '-');
-            document.getElementById('ruangSaranId').value         = data.saran_ruang.id;
-            pSaran.classList.remove('hidden');
+            tampilkanRuangSaran(
+                data.saran_ruang,
+                'Ruang Pilihan Bentrok — Sistem Menyarankan Ruang Alternatif',
+                data.detail,
+                true
+            );
         } else {
             document.getElementById('detailKonflik').textContent = data.detail;
             pKonflik.classList.remove('hidden');

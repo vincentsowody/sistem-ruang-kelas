@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
     {
         User::create([
             'name' => 'Admin',
-            'email' => 'admin@test.com',
+            'email' => 'admin@kampus.ac.id',
             'password' => bcrypt('password'),
             'role' => 'admin',
             'is_active' => true,
@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
 
         User::create([
             'name' => 'Dosen',
-            'email' => 'dosen@test.com',
+            'email' => 'dosen@kampus.ac.id',
             'password' => bcrypt('password'),
             'role' => 'dosen',
             'is_active' => true,
@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
 
         User::create([
             'name' => 'Mahasiswa',
-            'email' => 'mhs@test.com',
+            'email' => 'mhs@kampus.ac.id',
             'password' => bcrypt('password'),
             'role' => 'mahasiswa',
             'is_active' => true,

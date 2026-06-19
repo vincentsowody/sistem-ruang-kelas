@@ -58,36 +58,70 @@ class JadwalImportController extends Controller
         $hariList = ['senin','selasa','rabu','kamis','jumat','sabtu','sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
         foreach ($rows as $noRow => $row) {
-            // Deteksi baris header (cari baris yang ada kata "Kode" atau "Nama MK")
+            // Deteksi baris header — lebih fleksibel, cari baris yang punya minimal 3 kolom berisi teks
             if ($barisHeader === null) {
-                $rowLower = array_map(fn($v) => strtolower(trim((string)$v)), $row);
-                if (in_array('kode', $rowLower) || in_array('nama mk', $rowLower) ||
-                    in_array('kode mk', $rowLower) || in_array('mata kuliah', $rowLower)) {
+                $rowValues = array_filter(array_map(fn($v) => strtolower(trim((string)$v)), $row));
+                $jumlahTeks = count($rowValues);
+                // Deteksi apakah baris ini adalah header (ada kata kunci jadwal)
+                $kataKunciHeader = ['kode','nama','mk','mata','kuliah','hari','dosen','pengajar','ruang','slot','waktu','jam','sks','kelas','semester','prodi','program'];
+                $cocok = 0;
+                foreach ($rowValues as $v) {
+                    foreach ($kataKunciHeader as $kk) {
+                        if (str_contains($v, $kk)) { $cocok++; break; }
+                    }
+                }
+                if ($jumlahTeks >= 3 && $cocok >= 3) {
                     $barisHeader = $noRow;
+                    $nextColIsSemester = false;
                     foreach ($row as $col => $val) {
                         $valLower = strtolower(trim((string)$val));
-                        if (str_contains($valLower, 'kode'))          $kolomMap['kode_mk']        = $col;
-                        if (str_contains($valLower, 'nama'))          $kolomMap['mata_kuliah']     = $col;
-                        if ($valLower === 'kelas')                     $kolomMap['kelas']           = $col;
-                        if (str_contains($valLower, 'pengajar') ||
-                            str_contains($valLower, 'dosen'))          $kolomMap['pengajar']        = $col;
-                        if ($valLower === 'hari')                      $kolomMap['hari']            = $col;
-                        if (str_contains($valLower, 'slot') ||
-                            str_contains($valLower, 'waktu'))          $kolomMap['slot_waktu']      = $col;
-                        if (str_contains($valLower, 'ruang'))          $kolomMap['ruang']           = $col;
-                        if (str_contains($valLower, 'prodi') ||
-                            str_contains($valLower, 'program'))        $kolomMap['program_studi']   = $col;
-                        // FIX: "SKS Semester" (merged cell) → kolom ini=SKS, kolom berikutnya=Semester
+
+                        // FIX: "SKS Semester" digabung → kolom berikutnya (None) = semester
+                        if ($nextColIsSemester && !isset($kolomMap['semester'])) {
+                            $kolomMap['semester'] = $col;
+                            $nextColIsSemester    = false;
+                        }
+
+                        if (empty($valLower)) continue;
+
+                        if ((str_contains($valLower, 'kode') && str_contains($valLower, 'mk')) || $valLower === 'kode') {
+                            $kolomMap['kode_mk'] = $col;
+                        }
+                        if (str_contains($valLower, 'nama') && (str_contains($valLower, 'mk') || str_contains($valLower, 'kuliah'))) {
+                            $kolomMap['mata_kuliah'] = $col;
+                        } elseif (str_contains($valLower, 'mata') && str_contains($valLower, 'kuliah')) {
+                            $kolomMap['mata_kuliah'] = $col;
+                        } elseif ($valLower === 'nama') {
+                            $kolomMap['mata_kuliah'] = $col;
+                        }
+                        if ($valLower === 'kelas')                  $kolomMap['kelas']         = $col;
+                        if (str_contains($valLower, 'pengajar') || str_contains($valLower, 'dosen'))
+                                                                    $kolomMap['pengajar']      = $col;
+                        if ($valLower === 'hari')                   $kolomMap['hari']          = $col;
+                        if (str_contains($valLower, 'slot') || str_contains($valLower, 'waktu'))
+                                                                    $kolomMap['slot_waktu']    = $col;
+                        if (str_contains($valLower, 'jam') && str_contains($valLower, 'mulai'))
+                                                                    $kolomMap['jam_mulai']     = $col;
+                        if (str_contains($valLower, 'jam') && str_contains($valLower, 'selesai'))
+                                                                    $kolomMap['jam_selesai']   = $col;
+                        if (str_contains($valLower, 'ruang'))       $kolomMap['ruang']         = $col;
+                        if (str_contains($valLower, 'prodi') || str_contains($valLower, 'program'))
+                                                                    $kolomMap['program_studi'] = $col;
                         if ($valLower === 'sks') {
                             $kolomMap['sks'] = $col;
                         } elseif ($valLower === 'semester') {
                             $kolomMap['semester'] = $col;
                         } elseif (str_contains($valLower, 'sks') && str_contains($valLower, 'semester')) {
-                            $kolomMap['sks'] = $col;
-                            $kolomMap['__next_is_semester'] = true;
-                        } elseif (isset($kolomMap['__next_is_semester']) && !isset($kolomMap['semester'])) {
-                            $kolomMap['semester'] = $col;
-                            unset($kolomMap['__next_is_semester']);
+                            // "SKS Semester" di satu sel → semester ada di kolom berikutnya
+                            $kolomMap['sks']   = $col;
+                            $nextColIsSemester = true;
+                        }
+                    }
+                    // Jika tidak ada kolom 'mata_kuliah', coba kolom 'nama' saja
+                    if (!isset($kolomMap['mata_kuliah'])) {
+                        foreach ($row as $col => $val) {
+                            $valLower = strtolower(trim((string)$val));
+                            if ($valLower === 'nama') { $kolomMap['mata_kuliah'] = $col; break; }
                         }
                     }
                 }
@@ -101,11 +135,23 @@ class JadwalImportController extends Controller
             $noData = $noRow - $barisHeader;
 
             // Ambil nilai tiap kolom
-            $kodeMk      = $this->ambil($row, $kolomMap, 'kode_mk');
-            $mataKuliah  = $this->ambil($row, $kolomMap, 'mata_kuliah');
-            $sks         = $this->ambil($row, $kolomMap, 'sks');
-            $semester    = $this->ambil($row, $kolomMap, 'semester');
-            $kelas       = $this->ambil($row, $kolomMap, 'kelas');
+            $kodeMk     = $this->ambil($row, $kolomMap, 'kode_mk');
+            $mataKuliah = $this->ambil($row, $kolomMap, 'mata_kuliah');
+            $sks        = $this->ambil($row, $kolomMap, 'sks');
+            $semester   = $this->ambil($row, $kolomMap, 'semester');
+            $kelas      = $this->ambil($row, $kolomMap, 'kelas');
+
+            // Fallback: jika semester kosong, cek kolom tepat setelah SKS
+            if (empty($semester) && isset($kolomMap['sks'])) {
+                $kolomKeys = array_keys($row);
+                $idxSks    = array_search($kolomMap['sks'], $kolomKeys);
+                if ($idxSks !== false && isset($kolomKeys[$idxSks + 1])) {
+                    $nextVal = trim((string)($row[$kolomKeys[$idxSks + 1]] ?? ''));
+                    if (is_numeric($nextVal) && (int)$nextVal >= 1 && (int)$nextVal <= 8) {
+                        $semester = $nextVal;
+                    }
+                }
+            }
             $pengajar    = $this->ambil($row, $kolomMap, 'pengajar');
             $hariRaw     = $this->ambil($row, $kolomMap, 'hari');
             $slotWaktu   = $this->ambil($row, $kolomMap, 'slot_waktu');
@@ -115,9 +161,10 @@ class JadwalImportController extends Controller
             // Skip jika mata kuliah kosong
             if (empty($mataKuliah)) { $dilewati++; continue; }
 
-            // Skip jika ruang TBA / dikosongkan
-            if (empty($ruangRaw) || strtoupper(trim($ruangRaw)) === 'TBA' || trim($ruangRaw) === '-') {
-                $gagal[] = "Baris {$noData}: '{$mataKuliah}' kelas {$kelas} — Ruang belum ditentukan (TBA), dilewati.";
+            // Skip jika ruang TBA / belum ditentukan — ini normal, bukan error
+            $ruangTrimmed = trim($ruangRaw);
+            if (empty($ruangTrimmed) || in_array(strtoupper($ruangTrimmed), ['TBA', 'TBD', '-', 'NONE', '?'])) {
+                $dilewati++;
                 continue;
             }
 
@@ -134,20 +181,60 @@ class JadwalImportController extends Controller
             $hari = $hariMap[$hariLower];
 
             // Parse slot waktu → jam
-            $waktu = SlotWaktuMapper::parse((string)$slotWaktu);
+            // FIX: jika kolom slot_waktu ada, gunakan. Jika tidak, coba kolom jam_mulai & jam_selesai langsung
+            $waktu = null;
+            if (!empty($slotWaktu)) {
+                $waktu = SlotWaktuMapper::parse((string)$slotWaktu);
+                // Fallback: coba gabungkan sebagai "HH:MM - HH:MM"
+                if (!$waktu) {
+                    $jamMulaiLangsung  = $this->ambil($row, $kolomMap, 'jam_mulai');
+                    $jamSelesaiLangsung = $this->ambil($row, $kolomMap, 'jam_selesai');
+                    if ($jamMulaiLangsung && $jamSelesaiLangsung) {
+                        $waktu = SlotWaktuMapper::parse("{$jamMulaiLangsung} - {$jamSelesaiLangsung}");
+                    }
+                }
+            } else {
+                // Tidak ada kolom slot_waktu: coba kolom jam langsung
+                $jamMulaiLangsung   = $this->ambil($row, $kolomMap, 'jam_mulai');
+                $jamSelesaiLangsung = $this->ambil($row, $kolomMap, 'jam_selesai');
+                if ($jamMulaiLangsung && $jamSelesaiLangsung) {
+                    $waktu = SlotWaktuMapper::parse("{$jamMulaiLangsung} - {$jamSelesaiLangsung}");
+                } elseif ($jamMulaiLangsung) {
+                    $waktu = SlotWaktuMapper::parse($jamMulaiLangsung);
+                }
+            }
+
             if (!$waktu) {
-                $gagal[] = "Baris {$noData}: '{$mataKuliah}' — Slot waktu '{$slotWaktu}' tidak dikenali.";
+                $gagal[] = "Baris {$noData}: '{$mataKuliah}' — Slot waktu '{$slotWaktu}' tidak dikenali. Gunakan format '1 - 2' atau '08:00 - 10:30'.";
                 continue;
             }
 
             // Cari ruang
-            // FIX: Normalisasi format ruang — "JTE - 04", "JTE-04", "JTE -04" → semua jadi "JTE-04"
-            // Dilakukan di PHP (collection) agar kompatibel dengan semua versi MySQL/MariaDB
-            $kodeRuangNorm = strtolower(preg_replace('/\s*[-–]\s*/', '-', trim($ruangRaw)));
-            $ruang = RuangKelas::aktif()->get()->first(function ($r) use ($kodeRuangNorm) {
+            // Normalisasi format ruang — "JTE - 04", "JTE-04", "JTE -04" → semua jadi "JTE-04"
+            $kodeRuangNorm     = strtoupper(preg_replace('/\s*[-–]\s*/', '-', trim($ruangRaw)));
+            $kodeRuangNormLow  = strtolower($kodeRuangNorm);
+            $ruang = RuangKelas::aktif()->get()->first(function ($r) use ($kodeRuangNormLow) {
                 $dbNorm = strtolower(preg_replace('/\s*[-–]\s*/', '-', $r->kode_ruang));
-                return $dbNorm === $kodeRuangNorm;
+                return $dbNorm === $kodeRuangNormLow;
             });
+
+            // FIX: auto-create ruang jika belum ada di database (opsi baru)
+            if (!$ruang && $request->boolean('auto_create_ruang', false)) {
+                // Deteksi jenis ruang dari kode
+                $jenisRuang = str_contains(strtolower($kodeRuangNorm), 'kdk') ? 'laboratorium' : 'kelas';
+                // Deteksi gedung dari bagian sebelum tanda hubung
+                $gedung = explode('-', $kodeRuangNorm)[0] ?? $kodeRuangNorm;
+                $ruang = RuangKelas::create([
+                    'kode_ruang' => $kodeRuangNorm,
+                    'nama_ruang' => 'Ruang ' . $kodeRuangNorm,
+                    'gedung'     => $gedung,
+                    'lantai'     => 0,
+                    'kapasitas'  => 40,
+                    'jenis'      => $jenisRuang,
+                    'fasilitas'  => ['proyektor', 'whiteboard', 'ac'],
+                    'status'     => 'aktif',
+                ]);
+            }
 
             if (!$ruang) {
                 $gagal[] = "Baris {$noData}: '{$mataKuliah}' — Ruang '{$ruangRaw}' tidak ditemukan di database.";
@@ -209,9 +296,13 @@ class JadwalImportController extends Controller
         }
 
         // Simpan error ke session untuk ditampilkan
-        $pesan = "Import selesai: <strong>{$berhasil}</strong> jadwal berhasil diimport.";
-        if (!empty($gagal)) {
-            $pesan .= " <strong>".count($gagal)."</strong> baris gagal.";
+        $jumlahGagal    = count($gagal);
+        $pesan = "Import selesai: <strong>{$berhasil}</strong> jadwal berhasil";
+        if ($dilewati > 0) $pesan .= ", <strong>{$dilewati}</strong> dilewati (TBA/kosong)";
+        $pesan .= ".";
+
+        if ($jumlahGagal > 0) {
+            $pesan .= " <strong>{$jumlahGagal}</strong> baris gagal — lihat detail di bawah.";
             return redirect()->route('admin.jadwal.index')
                 ->with('warning', $pesan)
                 ->with('import_errors', $gagal);
@@ -389,24 +480,49 @@ class JadwalImportController extends Controller
         $dosen = User::dosen()->where('name', $namaDosen)->first();
         if ($dosen) return $dosen;
 
-        // 2. DB mengandung nama dari Excel atau sebaliknya
-        $dosen = User::dosen()
-            ->where('name', 'like', '%'.$namaDosen.'%')
-            ->first();
+        // 2. Normalisasi: hapus titik ganda, spasi berlebih, titik di akhir
+        // Menangani variasi: "Ph.D" vs "Ph.D." vs "M.Eng," vs "M.Eng."
+        $normalisasi = fn(string $s) => trim(preg_replace([
+            '/\.{2,}/',        // titik berulang
+            '/\s+/',           // spasi ganda
+            '/\.$/',           // titik di akhir string
+            '/,\s*$/',         // koma di akhir
+        ], ['.', ' ', '', ''], $s));
+
+        $namaNorm = $normalisasi($namaDosen);
+        $dosen    = User::dosen()->get()->first(
+            fn($u) => $normalisasi($u->name) === $namaNorm
+        );
         if ($dosen) return $dosen;
 
-        // 3. FIX: Cocokkan nama inti (tanpa gelar akademik)
+        // 3. Nama inti saja (tanpa semua gelar depan & belakang)
         // "Dr.Eng. Ir. Vecky C. Poekoel, ST, MT." → "Vecky C. Poekoel"
         $namaInti = $this->ambilNamaIntiDosen($namaDosen);
-        if ($namaInti) {
+        if ($namaInti && strlen($namaInti) > 4) {
+            // Cari di DB yang namanya mengandung nama inti
             $dosen = User::dosen()
                 ->where('name', 'like', '%'.$namaInti.'%')
                 ->first();
             if ($dosen) return $dosen;
+
+            // Cari dengan soundex/levenshtein untuk typo ringan
+            // (misal: "Ruindengan" vs "Ruindungan")
+            $dosenList = User::dosen()->get();
+            foreach ($dosenList as $d) {
+                $namaIntiDb = $this->ambilNamaIntiDosen($d->name);
+                if (strlen($namaIntiDb) > 4 && levenshtein(
+                    strtolower($namaInti),
+                    strtolower($namaIntiDb)
+                ) <= 3) {
+                    return $d;
+                }
+            }
         }
 
-        // 4. Nama sebelum koma pertama (sebelum gelar belakang)
+        // 4. Nama sebelum koma pertama (nama + gelar depan saja)
         $namaDepan = trim(explode(',', $namaDosen)[0]);
+        // Hapus gelar depan
+        $namaDepan = trim(preg_replace('/^(Dr\.Eng\.|Dr\.|Ir\.|Prof\.|Drs\.|Dra\.|Pdt\.|Pst\.|Ws\.|H\.|Hj\.)\s*/i', '', $namaDepan));
         if (strlen($namaDepan) > 4) {
             $dosen = User::dosen()
                 ->where('name', 'like', '%'.$namaDepan.'%')

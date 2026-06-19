@@ -107,10 +107,23 @@
             </div>
 
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <input type="checkbox" name="is_active" value="1" id="isActive"
-                    {{ old('is_active', $user->is_active) ? 'checked' : '' }}
-                    {{ $user->id === auth()->id() ? 'disabled' : '' }}
-                    class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                @if($user->id === auth()->id())
+                    {{-- Akun sendiri: checkbox disabled tidak pernah terkirim oleh browser,
+                         jadi kirim status asli lewat hidden input agar tidak tertimpa. --}}
+                    <input type="hidden" name="is_active" value="{{ $user->is_active ? '1' : '0' }}">
+                    <input type="checkbox" value="1" id="isActive" disabled
+                        {{ $user->is_active ? 'checked' : '' }}
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                @else
+                    {{-- FIX KRITIS: hidden fallback '0' dikirim duluan, lalu checkbox
+                         menimpa jadi '1' jika dicentang. Tanpa ini, uncheck checkbox
+                         tidak mengirim apa pun dan server tidak pernah tahu admin
+                         ingin menonaktifkan akun. --}}
+                    <input type="hidden" name="is_active" value="0">
+                    <input type="checkbox" name="is_active" value="1" id="isActive"
+                        {{ old('is_active', $user->is_active) ? 'checked' : '' }}
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                @endif
                 <label for="isActive" class="text-sm text-gray-700 cursor-pointer">
                     Akun aktif
                     @if($user->id === auth()->id())

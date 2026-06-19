@@ -24,32 +24,22 @@ class JadwalTetap extends Model
     ];
 
     // ── Relasi ──────────────────────────────────────────
-    public function ruangKelas()
-    {
-        return $this->belongsTo(RuangKelas::class);
-    }
-
-    public function dosen()
-    {
-        return $this->belongsTo(User::class, 'dosen_id');
-    }
+    public function ruangKelas() { return $this->belongsTo(RuangKelas::class); }
+    public function dosen()      { return $this->belongsTo(User::class, 'dosen_id'); }
 
     // ── Scope ────────────────────────────────────────────
-    public function scopeAktif($query)
-    {
-        return $query->where('status', 'aktif');
-    }
+    public function scopeAktif($q)              { return $q->where('status', 'aktif'); }
+    public function scopeTahunAkademik($q, $t)  { return $q->where('tahun_akademik', $t); }
 
-    public function scopeTahunAkademik($query, string $tahun)
-    {
-        return $query->where('tahun_akademik', $tahun);
-    }
-
-    // ── Accessor ─────────────────────────────────────────
+    /**
+     * BUG FIX 2: getDurasiAttribute() sama seperti Reservasi —
+     * strtotime("H:i") tidak reliable lintas timezone.
+     * FIX: hitung manual dari jam dan menit.
+     */
     public function getDurasiAttribute(): int
     {
-        return (int) round(
-            (strtotime($this->jam_selesai) - strtotime($this->jam_mulai)) / 60
-        );
+        [$hMulai,   $mMulai]   = array_map('intval', explode(':', $this->jam_mulai));
+        [$hSelesai, $mSelesai] = array_map('intval', explode(':', $this->jam_selesai));
+        return ($hSelesai * 60 + $mSelesai) - ($hMulai * 60 + $mMulai);
     }
 }

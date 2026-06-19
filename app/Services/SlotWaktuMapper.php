@@ -31,7 +31,11 @@ class SlotWaktuMapper
 ];
 
     /**
-     * Parse slot waktu dari string seperti "1 - 2", "4-5", "1-3", "10 - 12"
+     * Parse slot waktu dari berbagai format:
+     * - "1 - 2", "4-5", "1–2"   (slot angka)
+     * - "1"                       (slot tunggal)
+     * - "08:00 - 10:30"           (jam langsung)
+     * - "08:00"                   (jam tunggal, selesai +50 menit)
      * Return ['jam_mulai' => '07:30', 'jam_selesai' => '09:10']
      */
     public static function parse(string $slotStr): ?array
@@ -39,30 +43,63 @@ class SlotWaktuMapper
         // Bersihkan spasi
         $slotStr = trim($slotStr);
 
-        // Pola: "1 - 2", "1-2", "1–2", "1 – 2"
+        // ── Format jam langsung: "08:00 - 10:30" atau "08:00–10:30" ──
+        if (preg_match('/^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/', $slotStr, $m)) {
+            return [
+                'jam_mulai'    => $m[1],
+                'jam_selesai'  => $m[2],
+                'slot_mulai'   => null,
+                'slot_selesai' => null,
+            ];
+        }
+
+        // ── Format jam tunggal: "08:00" ──
+        if (preg_match('/^(\d{1,2}:\d{2})$/', $slotStr, $m)) {
+            // Coba cocokkan dengan tabel slot
+            foreach (self::$slots as $no => $s) {
+                if ($s['mulai'] === $m[1]) {
+                    return [
+                        'jam_mulai'    => $s['mulai'],
+                        'jam_selesai'  => $s['selesai'],
+                        'slot_mulai'   => $no,
+                        'slot_selesai' => $no,
+                    ];
+                }
+            }
+            // Tidak ada di tabel: pakai jam apa adanya, selesai +50 menit
+            $ts = strtotime($m[1]);
+            return [
+                'jam_mulai'    => $m[1],
+                'jam_selesai'  => date('H:i', $ts + 3000),
+                'slot_mulai'   => null,
+                'slot_selesai' => null,
+            ];
+        }
+
+        // ── Pola: "1 - 2", "1-2", "1–2", "1 – 2" ──
         if (preg_match('/^(\d+)\s*[-–]\s*(\d+)$/', $slotStr, $m)) {
             $slotMulai   = (int) $m[1];
             $slotSelesai = (int) $m[2];
 
             if (isset(self::$slots[$slotMulai]) && isset(self::$slots[$slotSelesai])) {
                 return [
-                    'jam_mulai'   => self::$slots[$slotMulai]['mulai'],
-                    'jam_selesai' => self::$slots[$slotSelesai]['selesai'],
-                    'slot_mulai'  => $slotMulai,
-                    'slot_selesai'=> $slotSelesai,
+                    'jam_mulai'    => self::$slots[$slotMulai]['mulai'],
+                    'jam_selesai'  => self::$slots[$slotSelesai]['selesai'],
+                    'slot_mulai'   => $slotMulai,
+                    'slot_selesai' => $slotSelesai,
                 ];
             }
         }
 
-        // Pola slot tunggal: "1", "5"
+        // ── Pola slot tunggal: "1", "5" ──
         if (preg_match('/^(\d+)$/', $slotStr, $m)) {
             $slot = (int) $m[1];
             if (isset(self::$slots[$slot])) {
                 return [
-                    'jam_mulai'   => self::$slots[$slot]['mulai'],
-                    'jam_selesai' => self::$slots[$slot]['selesai'],
-                    'slot_mulai'  => $slot,
-                    'slot_selesai'=> $slot,
+                    'jam_mulai'    => self::$slots[$slot]['mulai'],
+                    'jam_selesai'  => self::$slots[$slot]['selesai'],
+                    'slot_mulai'   => $slot,
+                    'slot_selesai' => $slot,
                 ];
             }
         }

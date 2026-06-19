@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\RuangKelas;
 use App\Models\JadwalTetap;
 use App\Models\Reservasi;
+use App\Models\RuangKelas;
+use Carbon\Carbon;
 
 class GreedyScheduler
 {
     /**
-     * Cek apakah ruang tertentu konflik pada tanggal & jam tertentu.
-     * Mengembalikan ['konflik' => bool, 'detail' => string].
+     * Cek konflik ruang pada tanggal & jam tertentu.
      */
     public function cekKonflik(
         int $ruangId,
@@ -20,53 +20,41 @@ class GreedyScheduler
         ?int $kecualiReservasiId = null
     ): array {
         $ruang = RuangKelas::find($ruangId);
-
         if (!$ruang) {
             return ['konflik' => true, 'detail' => 'Ruang tidak ditemukan.'];
         }
 
-        // Cek bentrok dengan jadwal tetap
-        $hariMap = [1=>'senin',2=>'selasa',3=>'rabu',4=>'kamis',5=>'jumat',6=>'sabtu',7=>'minggu'];
-        $carbonDate = \Carbon\Carbon::parse($tanggal);
-        $hari = $hariMap[$carbonDate->dayOfWeekIso] ?? strtolower($carbonDate->locale('id')->dayName);
+        $hari = $this->tanggalKeHari($tanggal);
 
+        // Cek jadwal tetap
         $jadwalBentrok = JadwalTetap::where('ruang_kelas_id', $ruangId)
             ->where('hari', $hari)
             ->where('status', 'aktif')
-            ->where(function ($q) use ($jamMulai, $jamSelesai) {
-                $q->where('jam_mulai', '<', $jamSelesai)
-                  ->where('jam_selesai', '>', $jamMulai);
-            })
+            ->where(fn($q) => $q->where('jam_mulai', '<', $jamSelesai)->where('jam_selesai', '>', $jamMulai))
             ->first();
 
         if ($jadwalBentrok) {
             return [
                 'konflik' => true,
-                'detail'  => "Bentrok dengan jadwal tetap {$jadwalBentrok->mata_kuliah} "
-                            ."({$jadwalBentrok->jam_mulai}–{$jadwalBentrok->jam_selesai})",
+                'detail'  => "Bentrok dengan jadwal tetap {$jadwalBentrok->mata_kuliah} ({$jadwalBentrok->jam_mulai}–{$jadwalBentrok->jam_selesai})",
             ];
         }
 
-        // Cek bentrok dengan reservasi yang sudah disetujui
+        // Cek reservasi yang sudah disetujui
         $query = Reservasi::where('ruang_kelas_id', $ruangId)
             ->where('tanggal', $tanggal)
             ->where('status', 'disetujui')
-            ->where(function ($q) use ($jamMulai, $jamSelesai) {
-                $q->where('jam_mulai', '<', $jamSelesai)
-                  ->where('jam_selesai', '>', $jamMulai);
-            });
+            ->where(fn($q) => $q->where('jam_mulai', '<', $jamSelesai)->where('jam_selesai', '>', $jamMulai));
 
         if ($kecualiReservasiId) {
             $query->where('id', '!=', $kecualiReservasiId);
         }
 
-        $reservasiBentrok = $query->first();
-
-        if ($reservasiBentrok) {
+        $rsvBentrok = $query->first();
+        if ($rsvBentrok) {
             return [
                 'konflik' => true,
-                'detail'  => "Bentrok dengan reservasi {$reservasiBentrok->kode_reservasi} "
-                            ."({$reservasiBentrok->jam_mulai}–{$reservasiBentrok->jam_selesai})",
+                'detail'  => "Bentrok dengan reservasi {$rsvBentrok->kode_reservasi} ({$rsvBentrok->jam_mulai}–{$rsvBentrok->jam_selesai})",
             ];
         }
 
@@ -75,8 +63,7 @@ class GreedyScheduler
 
     /**
      * Algoritma Greedy Best-Fit:
-     * Cari ruang terkecil yang muat (kapasitas >= jumlahPeserta) dan tersedia.
-     * Mengembalikan RuangKelas atau null jika tidak ada.
+     * Pilih ruang terkecil yang muat dan tersedia.
      */
     public function cariRuangTerbaik(
         string $tanggal,
@@ -88,23 +75,18 @@ class GreedyScheduler
     ): ?RuangKelas {
         $query = RuangKelas::aktif()
             ->where('kapasitas', '>=', $jumlahPeserta)
-            ->orderBy('kapasitas', 'asc'); // best-fit: pilih yang paling pas
+            ->orderBy('kapasitas', 'asc');
 
         if ($kecualiRuangId) {
             $query->where('id', '!=', $kecualiRuangId);
         }
 
-        $ruangList = $query->get();
-
-        foreach ($ruangList as $ruang) {
-            // Filter fasilitas jika ada kebutuhan spesifik
+        foreach ($query->get() as $ruang) {
             if (!empty($fasilitasDibutuhkan)) {
                 $fasilitasRuang = $ruang->fasilitas ?? [];
-                $terpenuhi = empty(array_diff($fasilitasDibutuhkan, $fasilitasRuang));
-                if (!$terpenuhi) continue;
+                if (!empty(array_diff($fasilitasDibutuhkan, $fasilitasRuang))) continue;
             }
 
-            // Cek ketersediaan
             if ($ruang->tersediaPada($tanggal, $jamMulai, $jamSelesai)) {
                 return $ruang;
             }
@@ -114,29 +96,35 @@ class GreedyScheduler
     }
 
     /**
-     * Jadwalkan batch jadwal ke ruang-ruang yang tersedia (Greedy First-Fit).
+     * Jadwalkan batch jadwal ke ruang yang tersedia (Greedy First-Fit).
+     *
+     * BUG FIX 11: jadwalkanBatch() mengalokasikan ruang tapi tidak memperhitungkan
+     * kapasitas ruang vs jumlah mahasiswa — ruang 10 kursi bisa dialokasikan
+     * untuk 80 mahasiswa. Juga tidak cek konflik antar item dalam batch yang sama
+     * (jika 2 item punya hari & jam sama, item ke-2 akan dapat ruang yang sama
+     * karena belum ada di DB saat dicek).
+     * FIX: cek kapasitas + track alokasi sesi ini di memory.
      */
-    public function jadwalkanBatch($jadwalInput = []): array
+    public function jadwalkanBatch(array $jadwalInput = []): array
     {
-        $hasil = [
-            'berhasil' => [],
-            'gagal'    => [],
-        ];
+        $hasil = ['berhasil' => [], 'gagal' => []];
 
-        if (!$jadwalInput || !is_array($jadwalInput)) {
-            return $hasil;
-        }
+        if (empty($jadwalInput)) return $hasil;
 
-        $ruangList = RuangKelas::where('status', 'aktif')
+        $ruangList = RuangKelas::aktif()
             ->orderBy('kapasitas', 'asc')
             ->get();
 
+        // Track ruang yang sudah dialokasikan dalam batch ini
+        // format: "ruang_id|hari|jam_mulai|jam_selesai" => true
+        $alokasiBatch = [];
+
         foreach ($jadwalInput as $item) {
             $item = array_merge([
-                'mata_kuliah'      => null,
-                'kelas'            => null,
-                'program_studi'    => null,
-                'semester'         => null,
+                'mata_kuliah'      => '',
+                'kelas'            => 'A',
+                'program_studi'    => 'Teknik Informatika',
+                'semester'         => 1,
                 'dosen_id'         => null,
                 'hari'             => null,
                 'jam_mulai'        => null,
@@ -148,18 +136,27 @@ class GreedyScheduler
             $ruangDipilih = null;
 
             foreach ($ruangList as $ruang) {
-                $bentrok = JadwalTetap::where('ruang_kelas_id', $ruang->id)
-                    ->where('hari', $item['hari'])
-                    ->where(function ($q) use ($item) {
-                        $q->where('jam_mulai', '<', $item['jam_selesai'])
-                          ->where('jam_selesai', '>', $item['jam_mulai']);
-                    })
-                    ->exists();
+                // FIX: cek kapasitas
+                if ($ruang->kapasitas < (int)($item['jumlah_mahasiswa'] ?? 1)) continue;
 
-                if (!$bentrok) {
-                    $ruangDipilih = $ruang;
-                    break;
-                }
+                // Cek konflik di DB (jadwal tetap yang sudah ada)
+                $bentrokDB = JadwalTetap::where('ruang_kelas_id', $ruang->id)
+                    ->where('hari', $item['hari'])
+                    ->where(fn($q) => $q
+                        ->where('jam_mulai', '<', $item['jam_selesai'])
+                        ->where('jam_selesai', '>', $item['jam_mulai'])
+                    )->exists();
+
+                if ($bentrokDB) continue;
+
+                // FIX: cek konflik dengan alokasi batch saat ini (belum di-commit ke DB)
+                $keyBatch = "{$ruang->id}|{$item['hari']}|{$item['jam_mulai']}|{$item['jam_selesai']}";
+                if (isset($alokasiBatch[$keyBatch])) continue;
+
+                // Ruang cocok — tandai dan pilih
+                $alokasiBatch[$keyBatch] = true;
+                $ruangDipilih = $ruang;
+                break;
             }
 
             if ($ruangDipilih) {
@@ -172,4 +169,12 @@ class GreedyScheduler
 
         return $hasil;
     }
-}
+
+    // ── Helper ────────────────────────────────────────────
+
+    private function tanggalKeHari(string $tanggal): string
+    {
+        $map = [1=>'senin',2=>'selasa',3=>'rabu',4=>'kamis',5=>'jumat',6=>'sabtu',7=>'minggu'];
+        return $map[Carbon::parse($tanggal)->dayOfWeekIso] ?? 'senin';
+    }
+}   

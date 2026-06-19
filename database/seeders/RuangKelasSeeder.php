@@ -6,180 +6,45 @@ use App\Models\RuangKelas;
 use Illuminate\Database\Seeder;
 
 /**
- * RuangKelasSeeder
- * Data ruang diambil dari file Excel jadwal PSTI Ganjil 2023/2024
- * Jalankan: php artisan db:seed --class=RuangKelasSeeder
+ * Seed ruang kelas sesuai data Excel jadwal kampus.
+ * Ruang JTE = Gedung Jurusan Teknik Elektro
+ * Ruang KDK = Kelompok Data Keahlian (Laboratorium)
  */
 class RuangKelasSeeder extends Seeder
 {
     public function run(): void
     {
-        // Jangan duplikat jika sudah ada
-        if (RuangKelas::where('kode_ruang', 'JTE-04')->exists()) {
-            $this->command->info('RuangKelasSeeder: data sudah ada, dilewati.');
-            return;
-        }
-
         $ruangList = [
-            [
-                'kode_ruang'  => 'JTE-04',
-                'nama_ruang'  => 'Ruang JTE-04',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-05',
-                'nama_ruang'  => 'Ruang JTE-05',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-06',
-                'nama_ruang'  => 'Ruang JTE-06',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-07',
-                'nama_ruang'  => 'Ruang JTE-07',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-08',
-                'nama_ruang'  => 'Ruang JTE-08',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-22',
-                'nama_ruang'  => 'Ruang JTE-22',
-                'gedung'      => 'JTE',
-                'lantai'      => 2,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'KDK-RPL',
-                'nama_ruang'  => 'Ruang KDK-RPL',
-                'gedung'      => 'KDK',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'laboratorium',
-                'fasilitas'   => ['komputer', 'proyektor', 'ac', 'whiteboard'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'KDK-TBD',
-                'nama_ruang'  => 'Ruang KDK-TBD',
-                'gedung'      => 'KDK',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'laboratorium',
-                'fasilitas'   => ['komputer', 'proyektor', 'ac', 'whiteboard'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'KDK-MM',
-                'nama_ruang'  => 'Ruang KDK-MM',
-                'gedung'      => 'KDK',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'laboratorium',
-                'fasilitas'   => ['komputer', 'proyektor', 'ac', 'whiteboard'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-09',
-                'nama_ruang'  => 'Ruang JTE-09',
-                'gedung'      => 'JTE',
-                'lantai'      => 0,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-10',
-                'nama_ruang'  => 'Ruang JTE-10',
-                'gedung'      => 'JTE',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-21',
-                'nama_ruang'  => 'Ruang JTE-21',
-                'gedung'      => 'JTE',
-                'lantai'      => 2,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'KDK-TIK',
-                'nama_ruang'  => 'Ruang KDK-TIK',
-                'gedung'      => 'KDK',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'laboratorium',
-                'fasilitas'   => ['komputer', 'proyektor', 'ac', 'whiteboard'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-23',
-                'nama_ruang'  => 'Ruang JTE-23',
-                'gedung'      => 'JTE',
-                'lantai'      => 2,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
-            [
-                'kode_ruang'  => 'JTE-13',
-                'nama_ruang'  => 'Ruang JTE-13',
-                'gedung'      => 'JTE',
-                'lantai'      => 1,
-                'kapasitas'   => 40,
-                'jenis'       => 'kelas',
-                'fasilitas'   => ['proyektor', 'whiteboard', 'ac'],
-                'status'      => 'aktif',
-            ],
+            // ── Ruang Kelas Reguler (JTE) ─────────────────────────
+            ['kode_ruang' => 'JTE-04', 'nama_ruang' => 'Ruang Kelas JTE 04', 'gedung' => 'JTE', 'lantai' => 1, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-05', 'nama_ruang' => 'Ruang Kelas JTE 05', 'gedung' => 'JTE', 'lantai' => 1, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-06', 'nama_ruang' => 'Ruang Kelas JTE 06', 'gedung' => 'JTE', 'lantai' => 1, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-07', 'nama_ruang' => 'Ruang Kelas JTE 07', 'gedung' => 'JTE', 'lantai' => 1, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-08', 'nama_ruang' => 'Ruang Kelas JTE 08', 'gedung' => 'JTE', 'lantai' => 1, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-09', 'nama_ruang' => 'Ruang Kelas JTE 09', 'gedung' => 'JTE', 'lantai' => 2, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-10', 'nama_ruang' => 'Ruang Kelas JTE 10', 'gedung' => 'JTE', 'lantai' => 2, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-13', 'nama_ruang' => 'Ruang Kelas JTE 13', 'gedung' => 'JTE', 'lantai' => 2, 'kapasitas' => 40, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-21', 'nama_ruang' => 'Ruang Kelas JTE 21', 'gedung' => 'JTE', 'lantai' => 3, 'kapasitas' => 50, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-22', 'nama_ruang' => 'Ruang Kelas JTE 22', 'gedung' => 'JTE', 'lantai' => 3, 'kapasitas' => 50, 'jenis' => 'kelas'],
+            ['kode_ruang' => 'JTE-23', 'nama_ruang' => 'Ruang Kelas JTE 23', 'gedung' => 'JTE', 'lantai' => 3, 'kapasitas' => 50, 'jenis' => 'kelas'],
+
+            // ── Laboratorium (KDK) ────────────────────────────────
+            ['kode_ruang' => 'KDK-MM',  'nama_ruang' => 'Lab KDK Multimedia',              'gedung' => 'KDK', 'lantai' => 1, 'kapasitas' => 35, 'jenis' => 'laboratorium'],
+            ['kode_ruang' => 'KDK-RPL', 'nama_ruang' => 'Lab KDK Rekayasa Perangkat Lunak','gedung' => 'KDK', 'lantai' => 1, 'kapasitas' => 35, 'jenis' => 'laboratorium'],
+            ['kode_ruang' => 'KDK-TBD', 'nama_ruang' => 'Lab KDK Teknologi Basis Data',    'gedung' => 'KDK', 'lantai' => 1, 'kapasitas' => 35, 'jenis' => 'laboratorium'],
+            ['kode_ruang' => 'KDK-TIK', 'nama_ruang' => 'Lab KDK Teknik Informatika',      'gedung' => 'KDK', 'lantai' => 1, 'kapasitas' => 35, 'jenis' => 'laboratorium'],
         ];
 
-        foreach ($ruangList as $ruang) {
-            RuangKelas::firstOrCreate(
-                ['kode_ruang' => $ruang['kode_ruang']],
-                $ruang
+        foreach ($ruangList as $data) {
+            RuangKelas::updateOrCreate(
+                ['kode_ruang' => $data['kode_ruang']],
+                array_merge($data, [
+                    'fasilitas' => ['proyektor', 'whiteboard', 'ac'],
+                    'status'    => 'aktif',
+                ])
             );
         }
 
-        $this->command->info('RuangKelasSeeder: ' . count($ruangList) . ' ruang berhasil ditambahkan.');
+        $this->command->info('✅ ' . count($ruangList) . ' ruang kelas berhasil di-seed.');
     }
 }

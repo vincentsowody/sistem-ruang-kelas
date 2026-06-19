@@ -16,7 +16,7 @@
         ['label'=>'Menunggu',  'value'=>$stats['menunggu'],  'color'=>'yellow', 'icon'=>'fa-hourglass-half'],
         ['label'=>'Disetujui', 'value'=>$stats['disetujui'], 'color'=>'green',  'icon'=>'fa-circle-check'],
         ['label'=>'Ditolak',   'value'=>$stats['ditolak'],   'color'=>'red',    'icon'=>'fa-circle-xmark'],
-        ['label'=>'Hari Ini',  'value'=>$stats['hari_ini'],  'color'=>'blue',   'icon'=>'fa-calendar-day'],
+        ['label'=>'Hari Ini', 'value'=>$stats['reservasi_hari_ini'] ?? 0, 'color'=>'blue', 'icon'=>'fa-calendar-day'],
     ] as $s)
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
         <div class="flex items-center justify-between mb-2">

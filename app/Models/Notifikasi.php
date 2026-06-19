@@ -44,12 +44,13 @@ class Notifikasi extends Model
     public function getIkonAttribute(): string
     {
         return match($this->tipe) {
-            'reservasi_baru' => '📋',
-            'disetujui'      => '✅',
-            'ditolak'        => '❌',
-            'dibatalkan'     => '🚫',
-            'pengingat'      => '⏰',
-            default          => 'ℹ️',
+            'reservasi_baru'    => '📋',
+            'disetujui'         => '✅',
+            'ditolak'           => '❌',
+            'dibatalkan'        => '🚫',
+            'pengingat'         => '⏰',
+            'rekomendasi_ruang' => '💡',
+            default             => 'ℹ️',
         };
     }
 }

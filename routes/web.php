@@ -158,6 +158,13 @@ Route::middleware(['auth', 'role:admin'])
         Route::post('/reservasi/{reservasi}/tolak', [ReservasiController::class, 'tolak'])
             ->name('reservasi.tolak');
 
+        Route::post('/reservasi/{reservasi}/pilihkan-ruang', [ReservasiController::class, 'pilihkanRuang'])
+            ->name('reservasi.pilihkan-ruang');
+
+        Route::get('/reservasi/{reservasi}/saran-ruang',
+            [ReservasiController::class, 'apiSaranRuangAdmin'])
+            ->name('reservasi.saran-ruang');
+
         /*
         |--------------------------------------------------------------------------
         | LAPORAN
@@ -316,7 +323,7 @@ Route::middleware('auth')
         Route::get('/jadwal/cek-konflik', [JadwalTetapController::class, 'apiCekKonflik'])
             ->name('jadwal.cek-konflik');
 
-        Route::post('/reservasi/cek', [ReservasiController::class, 'apiCekKetersediaan'])
+        Route::get('/reservasi/cek', [ReservasiController::class, 'apiCekKetersediaan'])
             ->name('reservasi.cek');
 
         Route::get('/kalender/events', [KalenderController::class, 'apiEvents'])

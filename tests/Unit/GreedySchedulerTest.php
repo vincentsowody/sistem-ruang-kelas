@@ -356,4 +356,95 @@ class GreedySchedulerTest extends TestCase
             'Ruang nonaktif tidak boleh masuk kandidat.'
         );
     }
+
+    // =========================================================
+    // GROUP 3: jadwalkanBatch() — Greedy First-Fit batch
+    // =========================================================
+
+    /** @test */
+    public function jadwalkan_batch_berhasil_mengalokasikan_jadwal_ke_ruang_kosong()
+    {
+        $input = [
+            [
+                'mata_kuliah'      => 'Algoritma & Pemrograman',
+                'hari'             => 'senin',
+                'jam_mulai'        => '08:00',
+                'jam_selesai'      => '10:00',
+                'jumlah_mahasiswa' => 25,
+            ],
+        ];
+
+        $hasil = $this->greedy->jadwalkanBatch($input);
+
+        $this->assertCount(1, $hasil['berhasil'],
+            'Jadwal harus berhasil dialokasikan ke ruang yang kosong.'
+        );
+        $this->assertCount(0, $hasil['gagal']);
+        $this->assertNotNull($hasil['berhasil'][0]['ruang_dialokasikan']);
+    }
+
+    /** @test */
+    public function jadwalkan_batch_memilih_ruang_terkecil_yang_tersedia()
+    {
+        $input = [
+            [
+                'mata_kuliah'      => 'Basis Data',
+                'hari'             => 'selasa',
+                'jam_mulai'        => '10:00',
+                'jam_selesai'      => '12:00',
+                'jumlah_mahasiswa' => 20,
+            ],
+        ];
+
+        $hasil = $this->greedy->jadwalkanBatch($input);
+
+        $this->assertCount(1, $hasil['berhasil']);
+        // Karena first-fit dari kapasitas terkecil, harusnya dapat ruangKecil (30)
+        $this->assertEquals(
+            $this->ruangKecil->id,
+            $hasil['berhasil'][0]['ruang_dialokasikan']->id
+        );
+    }
+
+    /** @test */
+    public function jadwalkan_batch_memasukkan_ke_gagal_jika_semua_ruang_bentrok()
+    {
+        // Buat jadwal tetap di semua ruang untuk hari Rabu 08:00-10:00
+        foreach ([$this->ruangKecil, $this->ruangSedang, $this->ruangBesar] as $ruang) {
+            JadwalTetap::factory()->create([
+                'ruang_kelas_id' => $ruang->id,
+                'dosen_id'       => $this->dosen->id,
+                'hari'           => 'rabu',
+                'jam_mulai'      => '08:00',
+                'jam_selesai'    => '10:00',
+                'status'         => 'aktif',
+            ]);
+        }
+
+        $input = [
+            [
+                'mata_kuliah'      => 'Pemrograman Web',
+                'hari'             => 'rabu',
+                'jam_mulai'        => '08:00',
+                'jam_selesai'      => '10:00',
+                'jumlah_mahasiswa' => 20,
+            ],
+        ];
+
+        $hasil = $this->greedy->jadwalkanBatch($input);
+
+        $this->assertCount(0, $hasil['berhasil']);
+        $this->assertCount(1, $hasil['gagal'],
+            'Jadwal harus masuk ke daftar gagal jika semua ruang bentrok.'
+        );
+    }
+
+    /** @test */
+    public function jadwalkan_batch_dengan_input_kosong_mengembalikan_array_kosong()
+    {
+        $hasil = $this->greedy->jadwalkanBatch([]);
+
+        $this->assertEmpty($hasil['berhasil']);
+        $this->assertEmpty($hasil['gagal']);
+    }
 }

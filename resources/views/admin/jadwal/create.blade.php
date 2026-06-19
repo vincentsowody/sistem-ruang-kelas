@@ -1,60 +1,62 @@
 @extends('layouts.app')
 @section('title', 'Tambah Jadwal Tetap')
+@section('page_title', 'Tambah Jadwal')
+@section('page_subtitle', 'Tambahkan jadwal kuliah baru')
 
 @section('content')
 
-<div class="mb-6">
-    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+<div class="mb-5">
+    <div class="flex items-center gap-2 text-sm text-slate-400 mb-3">
         <a href="{{ route('admin.jadwal.index') }}" class="hover:text-blue-600">Jadwal Tetap</a>
-        <i class="fa-solid fa-chevron-right text-xs"></i>
-        <span class="text-gray-800 font-medium">Tambah Jadwal</span>
+        <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"></i>
+        <span class="text-slate-800 font-medium">Tambah Jadwal</span>
     </div>
-    <h1 class="text-2xl font-bold text-gray-800">Tambah Jadwal Tetap</h1>
+    <h1 class="text-lg font-bold text-slate-800">Tambah Jadwal Tetap</h1>
 </div>
 
-<div class="max-w-2xl">
+<div class="max-w-2xl w-full">
     <form method="POST" action="{{ route('admin.jadwal.store') }}" class="space-y-5" id="formJadwal">
         @csrf
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <h2 class="font-semibold text-gray-700 flex items-center gap-2">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
+            <h2 class="font-semibold text-slate-700 flex items-center gap-2">
                 <i class="fa-solid fa-book text-blue-500"></i> Informasi Mata Kuliah
             </h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Mata Kuliah <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Mata Kuliah <span class="text-red-500">*</span></label>
                     <input type="text" name="mata_kuliah" value="{{ old('mata_kuliah') }}"
                         placeholder="Contoh: Pemrograman Web"
-                        class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $errors->has('mata_kuliah') ? 'border-red-400 bg-red-50' : 'border-gray-200' }}">
+                        class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('mata_kuliah') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}">
                     @error('mata_kuliah')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Kode MK</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Kode MK</label>
                     <input type="text" name="kode_mk" value="{{ old('kode_mk') }}"
                         placeholder="Contoh: TI301"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Kelas <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Kelas <span class="text-red-500">*</span></label>
                     <input type="text" name="kelas" value="{{ old('kelas') }}" placeholder="A"
-                        class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $errors->has('kelas') ? 'border-red-400 bg-red-50' : 'border-gray-200' }}">
+                        class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('kelas') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}">
                     @error('kelas')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Semester <span class="text-red-500">*</span></label>
-                    <select name="semester" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Semester <span class="text-red-500">*</span></label>
+                    <select name="semester" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                         @for($i=1;$i<=8;$i++)
                         <option value="{{ $i }}" {{ old('semester')==$i?'selected':'' }}>Semester {{ $i }}</option>
                         @endfor
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">SKS <span class="text-red-500">*</span></label>
-                    <select name="sks" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">SKS <span class="text-red-500">*</span></label>
+                    <select name="sks" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                         @for($i=1;$i<=6;$i++)
                         <option value="{{ $i }}" {{ old('sks',$i==2?2:null)==$i?'selected':'' }}>{{ $i }} SKS</option>
                         @endfor
@@ -63,15 +65,15 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Program Studi <span class="text-red-500">*</span></label>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Program Studi <span class="text-red-500">*</span></label>
                 <input type="text" name="program_studi" value="{{ old('program_studi') }}"
                     placeholder="Contoh: Teknik Informatika"
-                    class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 {{ $errors->has('program_studi') ? 'border-red-400 bg-red-50' : 'border-gray-200' }}">
+                    class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('program_studi') ? 'border-red-400 bg-red-50' : 'border-slate-200' }}">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Dosen Pengampu <span class="text-red-500">*</span></label>
-                <select name="dosen_id" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white {{ $errors->has('dosen_id') ? 'border-red-400' : 'border-gray-200' }}">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Dosen Pengampu <span class="text-red-500">*</span></label>
+                <select name="dosen_id" id="dosenInput" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white {{ $errors->has('dosen_id') ? 'border-red-400' : 'border-slate-200' }}">
                     <option value="">-- Pilih Dosen --</option>
                     @foreach($dosenList as $d)
                     <option value="{{ $d->id }}" {{ old('dosen_id')==$d->id?'selected':'' }}>{{ $d->name }}</option>
@@ -80,21 +82,21 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <h2 class="font-semibold text-gray-700 flex items-center gap-2">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
+            <h2 class="font-semibold text-slate-700 flex items-center gap-2">
                 <i class="fa-solid fa-clock text-green-500"></i> Waktu & Ruangan
             </h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Tahun Akademik <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Tahun Akademik <span class="text-red-500">*</span></label>
                     <input type="text" name="tahun_akademik" value="{{ old('tahun_akademik','2024/2025') }}"
                         placeholder="2024/2025" id="tahunAkademik"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Semester <span class="text-red-500">*</span></label>
-                    <select name="semester_ganjil_genap" id="semesterGG" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Semester <span class="text-red-500">*</span></label>
+                    <select name="semester_ganjil_genap" id="semesterGG" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                         <option value="ganjil" {{ old('semester_ganjil_genap','ganjil')=='ganjil'?'selected':'' }}>Ganjil</option>
                         <option value="genap"  {{ old('semester_ganjil_genap')=='genap'?'selected':'' }}>Genap</option>
                     </select>
@@ -103,8 +105,8 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Hari <span class="text-red-500">*</span></label>
-                    <select name="hari" id="hariInput" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" onchange="cekKonflik()">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Hari <span class="text-red-500">*</span></label>
+                    <select name="hari" id="hariInput" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" onchange="cekKonflik()">
                         <option value="">-- Pilih Hari --</option>
                         @foreach(['senin','selasa','rabu','kamis','jumat','sabtu'] as $h)
                         <option value="{{ $h }}" {{ old('hari')==$h?'selected':'' }}>{{ ucfirst($h) }}</option>
@@ -112,20 +114,20 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Jam Mulai <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Jam Mulai <span class="text-red-500">*</span></label>
                     <input type="time" name="jam_mulai" value="{{ old('jam_mulai') }}" id="jamMulai"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="cekKonflik()">
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="cekKonflik()">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Jam Selesai <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Jam Selesai <span class="text-red-500">*</span></label>
                     <input type="time" name="jam_selesai" value="{{ old('jam_selesai') }}" id="jamSelesai"
-                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="cekKonflik()">
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" onchange="cekKonflik()">
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Ruang Kelas <span class="text-red-500">*</span></label>
-                <select name="ruang_kelas_id" id="ruangInput" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white {{ $errors->has('ruang_kelas_id') ? 'border-red-400' : 'border-gray-200' }}" onchange="cekKonflik()">
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Ruang Kelas <span class="text-red-500">*</span></label>
+                <select name="ruang_kelas_id" id="ruangInput" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white {{ $errors->has('ruang_kelas_id') ? 'border-red-400' : 'border-slate-200' }}" onchange="cekKonflik()">
                     <option value="">-- Pilih Ruang --</option>
                     @foreach($ruangList as $r)
                     <option value="{{ $r->id }}" {{ old('ruang_kelas_id')==$r->id?'selected':'' }}>
@@ -138,27 +140,27 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
                 <div class="flex gap-4">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="status" value="aktif" {{ old('status','aktif')=='aktif'?'checked':'' }} class="text-blue-600">
-                        <span class="text-sm text-gray-700">Aktif</span>
+                        <span class="text-sm text-slate-700">Aktif</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="status" value="nonaktif" {{ old('status')=='nonaktif'?'checked':'' }} class="text-blue-600">
-                        <span class="text-sm text-gray-700">Nonaktif</span>
+                        <span class="text-sm text-slate-700">Nonaktif</span>
                     </label>
                 </div>
             </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex flex-col sm:flex-row gap-3">
             <button type="submit" id="btnSimpan"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition flex items-center gap-2 text-sm">
+                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition flex items-center gap-2 text-sm w-full sm:w-auto justify-center">
                 <i class="fa-solid fa-floppy-disk"></i> Simpan Jadwal
             </button>
             <a href="{{ route('admin.jadwal.index') }}"
-                class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-2.5 rounded-xl transition text-sm">
+                class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-6 py-2.5 rounded-xl transition text-sm w-full sm:w-auto text-center">
                 Batal
             </a>
         </div>
@@ -173,45 +175,90 @@ let konflikTimer = null;
 
 function cekKonflik() {
     clearTimeout(konflikTimer);
+
+    // BUG FIX B: reset tombol dulu setiap kali user mengubah input
+    // Sebelumnya tombol bisa stuck disabled meski konflik sudah hilang
+    const btnSimpan = document.getElementById('btnSimpan');
+    btnSimpan.disabled = false;
+    btnSimpan.classList.remove('opacity-50', 'cursor-not-allowed');
+
     konflikTimer = setTimeout(() => {
-        const ruangId  = document.getElementById('ruangInput').value;
-        const hari     = document.getElementById('hariInput').value;
-        const jamMulai = document.getElementById('jamMulai').value;
+        const ruangId    = document.getElementById('ruangInput').value;
+        const hari       = document.getElementById('hariInput').value;
+        const jamMulai   = document.getElementById('jamMulai').value;
         const jamSelesai = document.getElementById('jamSelesai').value;
-        const tahun    = document.getElementById('tahunAkademik').value;
-        const semGG    = document.getElementById('semesterGG').value;
-        const info     = document.getElementById('konflikInfo');
+        const tahun      = document.getElementById('tahunAkademik').value;
+        const semGG      = document.getElementById('semesterGG').value;
+        const dosenId    = document.getElementById('dosenInput')?.value || '';
+        const info       = document.getElementById('konflikInfo');
 
-        if (!ruangId || !hari || !jamMulai || !jamSelesai) return;
+        if (!ruangId || !hari || !jamMulai || !jamSelesai) {
+            info.classList.add('hidden');
+            return;
+        }
 
-        info.innerHTML = '<p class="text-xs text-gray-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i>Memeriksa konflik...</p>';
+        // Validasi jam selesai > jam mulai di sisi client
+        if (jamSelesai <= jamMulai) {
+            info.innerHTML = `<div class="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs"></i>
+                <p class="text-amber-700 text-xs font-medium">Jam selesai harus lebih dari jam mulai.</p>
+            </div>`;
+            info.classList.remove('hidden');
+            btnSimpan.disabled = true;
+            btnSimpan.classList.add('opacity-50', 'cursor-not-allowed');
+            return;
+        }
+
+        info.innerHTML = `<div class="flex items-center gap-2 px-3 py-2 mt-2">
+            <i class="fa-solid fa-spinner fa-spin text-slate-400 text-xs"></i>
+            <p class="text-slate-400 text-xs">Memeriksa konflik jadwal...</p>
+        </div>`;
         info.classList.remove('hidden');
 
-        fetch(`{{ route('api.jadwal.cek-konflik') }}?` + new URLSearchParams({
-            ruang_kelas_id: ruangId, hari, jam_mulai: jamMulai,
-            jam_selesai: jamSelesai, tahun_akademik: tahun,
+        // BUG FIX D: sertakan kecuali_id (ID jadwal yang sedang diedit)
+        // agar jadwal yang sedang diedit tidak dianggap konflik dengan dirinya sendiri
+        const kecualiId = document.getElementById('kecualiId')?.value || '';
+
+        const params = {
+            ruang_kelas_id: ruangId,
+            hari,
+            jam_mulai: jamMulai,
+            jam_selesai: jamSelesai,
+            tahun_akademik: tahun,
             semester_ganjil_genap: semGG,
-            _token: '{{ csrf_token() }}'
-        }))
+        };
+        if (dosenId)    params.dosen_id    = dosenId;
+        if (kecualiId)  params.kecuali_id  = kecualiId;
+
+        fetch(`{{ route('api.jadwal.cek-konflik') }}?` + new URLSearchParams(params), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
         .then(r => r.json())
         .then(data => {
             if (data.konflik) {
-                info.innerHTML = `<div class="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
-                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xs"></i>
-                    <p class="text-red-700 text-xs">${data.detail}</p>
+                info.innerHTML = `<div class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 mt-2">
+                    <i class="fa-solid fa-circle-xmark text-red-500 text-xs mt-0.5 shrink-0"></i>
+                    <p class="text-red-700 text-xs leading-relaxed">${data.detail}</p>
                 </div>`;
-                document.getElementById('btnSimpan').disabled = true;
-                document.getElementById('btnSimpan').classList.add('opacity-50','cursor-not-allowed');
+                btnSimpan.disabled = true;
+                btnSimpan.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
-                info.innerHTML = `<div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                info.innerHTML = `<div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mt-2">
                     <i class="fa-solid fa-circle-check text-green-500 text-xs"></i>
                     <p class="text-green-700 text-xs">${data.detail}</p>
                 </div>`;
-                document.getElementById('btnSimpan').disabled = false;
-                document.getElementById('btnSimpan').classList.remove('opacity-50','cursor-not-allowed');
+                btnSimpan.disabled = false;
+                btnSimpan.classList.remove('opacity-50', 'cursor-not-allowed');
             }
+        })
+        .catch(() => {
+            info.innerHTML = `<div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mt-2">
+                <i class="fa-solid fa-wifi text-slate-400 text-xs"></i>
+                <p class="text-slate-500 text-xs">Tidak dapat memeriksa konflik. Pastikan semua field terisi.</p>
+            </div>`;
+            info.classList.remove('hidden');
         });
-    }, 500);
+    }, 600);
 }
 </script>
 @endsection

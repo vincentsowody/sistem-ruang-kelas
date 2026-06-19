@@ -47,26 +47,35 @@ class LaporanController extends Controller
         // PERBAIKAN N+1: gunakan satu query agregasi DB
         // Hitung total jam reservasi bulan ini per ruang dalam satu query
         $utilisasiRaw = Reservasi::select(
-                'ruang_kelas_id',
-                DB::raw('COUNT(*) as total_sesi'),
-                DB::raw('SUM(TIMESTAMPDIFF(MINUTE, jam_mulai, jam_selesai)) as total_menit')
-            )
-            ->where('status', 'disetujui')
-            ->whereMonth('tanggal', now()->month)
-            ->groupBy('ruang_kelas_id')
-            ->pluck('total_menit', 'ruang_kelas_id'); // key = ruang_kelas_id
-
+        'ruang_kelas_id',
+        DB::raw('COUNT(*) as total_sesi'),
+        DB::raw('SUM(TIMESTAMPDIFF(MINUTE, jam_mulai, jam_selesai)) as total_menit')
+    )
+    ->where('status', 'disetujui')
+    ->whereMonth('tanggal', now()->month)
+    ->groupBy('ruang_kelas_id')
+    ->get()
+    ->keyBy('ruang_kelas_id');
         $utilisasi = RuangKelas::aktif()->get()->map(function ($ruang) use ($utilisasiRaw) {
-            $totalJam = round(($utilisasiRaw[$ruang->id] ?? 0) / 60, 1);
-            $jamTersedia = self::JAM_OPERASIONAL_PER_HARI * self::HARI_KERJA_PER_BULAN;
-            $persen = $jamTersedia > 0 ? round(($totalJam / $jamTersedia) * 100, 1) : 0;
 
-            return [
-                'ruang'     => $ruang,
-                'total_jam' => $totalJam,
-                'persen'    => min($persen, 100),
-            ];
-        })->sortByDesc('total_jam')->take(5);
+    $data = $utilisasiRaw->get($ruang->id);
+
+    $totalMenit = $data->total_menit ?? 0;
+    $totalJam   = round($totalMenit / 60, 1);
+
+    $jamTersedia = self::JAM_OPERASIONAL_PER_HARI * self::HARI_KERJA_PER_BULAN;
+
+    $persen = $jamTersedia > 0
+        ? round(($totalJam / $jamTersedia) * 100, 1)
+        : 0;
+
+    return [
+        'ruang'      => $ruang,
+        'total_jam'  => $totalJam,
+        'total_sesi' => $data->total_sesi ?? 0,
+        'persen'     => min($persen, 100),
+    ];
+})->sortByDesc('total_jam')->take(5);
 
         return view('admin.laporan.index', compact('ruangList', 'tahunList', 'stats', 'utilisasi'));
     }
