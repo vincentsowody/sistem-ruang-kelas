@@ -428,8 +428,14 @@ function toggleNotif() {
     if (!dd.classList.contains('hidden')) loadNotif();
 }
 document.addEventListener('click', e => {
-    if (!e.target.closest('#notifWrapper'))   document.getElementById('notifDropdown')?.classList.add('hidden');
-    if (!e.target.closest('[onclick="toggleDropdown()"]')) document.getElementById('userDropdown')?.classList.add('hidden');
+    if (!e.target.closest('#notifWrapper')) {
+        const notifDD = document.getElementById('notifDropdown');
+        if (notifDD) notifDD.classList.add('hidden');
+    }
+    if (!e.target.closest('[onclick="toggleDropdown()"]')) {
+        const userDD = document.getElementById('userDropdown');
+        if (userDD) userDD.classList.add('hidden');
+    }
 });
 
 // Notif badge

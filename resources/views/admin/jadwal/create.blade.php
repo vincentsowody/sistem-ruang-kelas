@@ -189,7 +189,8 @@ function cekKonflik() {
         const jamSelesai = document.getElementById('jamSelesai').value;
         const tahun      = document.getElementById('tahunAkademik').value;
         const semGG      = document.getElementById('semesterGG').value;
-        const dosenId    = document.getElementById('dosenInput')?.value || '';
+        const dosenInputEl = document.getElementById('dosenInput');
+        const dosenId    = dosenInputEl ? dosenInputEl.value : '';
         const info       = document.getElementById('konflikInfo');
 
         if (!ruangId || !hari || !jamMulai || !jamSelesai) {
@@ -217,7 +218,8 @@ function cekKonflik() {
 
         // BUG FIX D: sertakan kecuali_id (ID jadwal yang sedang diedit)
         // agar jadwal yang sedang diedit tidak dianggap konflik dengan dirinya sendiri
-        const kecualiId = document.getElementById('kecualiId')?.value || '';
+        const kecualiIdEl = document.getElementById('kecualiId');
+        const kecualiId = kecualiIdEl ? kecualiIdEl.value : '';
 
         const params = {
             ruang_kelas_id: ruangId,
