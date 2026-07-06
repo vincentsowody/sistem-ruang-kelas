@@ -331,4 +331,17 @@ Route::middleware('auth')
 
         Route::get('/notifikasi/jumlah', [NotifikasiController::class, 'apiJumlah'])
             ->name('notifikasi.jumlah');
+        /*
+|--------------------------------------------------------------------------
+| IMPORT MAHASISWA
+|--------------------------------------------------------------------------
+*/
+Route::get('/mahasiswa-import', [App\Http\Controllers\MahasiswaImportController::class, 'form'])
+    ->name('mahasiswa-import.form');
+
+Route::post('/mahasiswa-import/scan', [App\Http\Controllers\MahasiswaImportController::class, 'scan'])
+    ->name('mahasiswa-import.scan');
+
+Route::post('/mahasiswa-import/simpan', [App\Http\Controllers\MahasiswaImportController::class, 'simpan'])
+    ->name('mahasiswa-import.simpan');
     });
