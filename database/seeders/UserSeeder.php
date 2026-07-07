@@ -33,6 +33,20 @@ class UserSeeder extends Seeder
             'email' => 'mhs@kampus.ac.id',
             'password' => bcrypt('password'),
             'role' => 'mahasiswa',
+            'program_studi' => 'Teknik Informatika',
+            'semester' => 1,
+            'kelas' => 'A',
+            'is_active' => true,
+        ]);
+
+        User::create([
+            'name' => 'Mahasiswa Semester 3',
+            'email' => 'mhs3@kampus.ac.id',
+            'password' => bcrypt('password'),
+            'role' => 'mahasiswa',
+            'program_studi' => 'Teknik Informatika',
+            'semester' => 3,
+            'kelas' => 'A',
             'is_active' => true,
         ]);
     }

@@ -140,7 +140,7 @@ class AdminReservasiTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->post(route('reservasi.pilihkan-ruang', $this->reservasi), [
+            ->post(route('admin.reservasi.pilihkan-ruang', $this->reservasi), [
                 'ruang_dipilih_id' => $ruangLain->id,
                 'catatan_admin'    => 'Ruang asli diganti karena kebutuhan fasilitas.',
             ])
@@ -172,7 +172,7 @@ class AdminReservasiTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)
-            ->post(route('reservasi.pilihkan-ruang', $this->reservasi), [
+            ->post(route('admin.reservasi.pilihkan-ruang', $this->reservasi), [
                 'ruang_dipilih_id' => $this->ruang->id,
             ])
             ->assertSessionHas('error');
@@ -189,7 +189,7 @@ class AdminReservasiTest extends TestCase
         $this->reservasi->update(['status' => 'ditolak']);
 
         $this->actingAs($this->admin)
-            ->post(route('reservasi.pilihkan-ruang', $this->reservasi), [
+            ->post(route('admin.reservasi.pilihkan-ruang', $this->reservasi), [
                 'ruang_dipilih_id' => $this->ruang->id,
             ])
             ->assertSessionHas('error');

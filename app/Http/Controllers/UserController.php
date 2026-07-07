@@ -55,11 +55,15 @@ class UserController extends Controller
             'role'          => 'required|in:admin,dosen,mahasiswa',
             'nip_nim'       => 'nullable|string|max:30|unique:users,nip_nim',
             'program_studi' => 'nullable|string|max:100',
+            'semester'      => 'nullable|integer|min:1|max:14|required_if:role,mahasiswa',
+            'kelas'         => 'nullable|string|max:5|required_if:role,mahasiswa',
             'no_hp'         => 'nullable|string|max:20',
             'is_active'     => 'boolean',
         ], [
-            'email.unique'   => 'Email sudah digunakan.',
-            'nip_nim.unique' => 'NIP/NIM sudah digunakan.',
+            'email.unique'          => 'Email sudah digunakan.',
+            'nip_nim.unique'        => 'NIP/NIM sudah digunakan.',
+            'semester.required_if'  => 'Semester wajib diisi untuk akun mahasiswa.',
+            'kelas.required_if'     => 'Kelas wajib diisi untuk akun mahasiswa.',
         ]);
 
         $validated['password']  = Hash::make($validated['password']);
@@ -97,8 +101,13 @@ class UserController extends Controller
             'role'          => 'required|in:admin,dosen,mahasiswa',
             'nip_nim'       => 'nullable|string|max:30|unique:users,nip_nim,'.$user->id,
             'program_studi' => 'nullable|string|max:100',
+            'semester'      => 'nullable|integer|min:1|max:14|required_if:role,mahasiswa',
+            'kelas'         => 'nullable|string|max:5|required_if:role,mahasiswa',
             'no_hp'         => 'nullable|string|max:20',
             'is_active'     => 'boolean',
+        ], [
+            'semester.required_if' => 'Semester wajib diisi untuk akun mahasiswa.',
+            'kelas.required_if'    => 'Kelas wajib diisi untuk akun mahasiswa.',
         ]);
 
         if ($request->filled('password')) {

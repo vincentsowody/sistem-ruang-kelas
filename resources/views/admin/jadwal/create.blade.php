@@ -263,4 +263,4 @@ function cekKonflik() {
     }, 600);
 }
 </script>
-@endsection
+@endsection 

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('reservasi_id')->nullable()->constrained('reservasi')->nullOnDelete();
             $table->string('judul');
             $table->text('pesan');
-            $table->enum('tipe', ['reservasi_baru','disetujui','ditolak','dibatalkan','pengingat','info'])->default('info');
+            $table->enum('tipe', ['reservasi_baru','disetujui','ditolak','dibatalkan','pengingat','info','rekomendasi_ruang'])->default('info');
             $table->boolean('sudah_dibaca')->default(false);
             $table->timestamp('dibaca_pada')->nullable();
             $table->timestamps();

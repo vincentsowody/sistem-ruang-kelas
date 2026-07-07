@@ -21,7 +21,7 @@ class Reservasi extends Model
     ];
 
     protected $casts = [
-        'tanggal'        => 'date',
+        'tanggal'        => 'date:Y-m-d',
         'diproses_pada'  => 'datetime',
         'jumlah_peserta' => 'integer',
         'gunakan_saran'  => 'boolean',

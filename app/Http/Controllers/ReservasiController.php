@@ -95,14 +95,14 @@ class ReservasiController extends Controller
     public function tolak(Request $request, Reservasi $reservasi)
     {
         /**
-         * BUG FIX 4: Validasi catatan_admin di tolak() menggunakan 'required'
-         * tapi form di show.blade.php memiliki satu textarea yang di-share
-         * antara setujui dan tolak — jika user tidak isi catatan lalu klik Tolak,
-         * validasi gagal tapi error message tidak muncul dengan jelas di form.
-         * FIX: ubah menjadi nullable agar tidak blocking, tapi tetap sanitasi.
+         * Form "Tolak Reservasi" di admin/reservasi/show.blade.php sudah punya
+         * textarea sendiri (terpisah dari form "Setujui") dengan atribut HTML
+         * `required`. Validasi server-side WAJIB ikut mewajibkan alasan ini,
+         * supaya penolakan tanpa alasan tidak bisa lolos lewat request langsung
+         * (mis. curl/Postman) yang melewati validasi HTML5 di browser.
          */
         $request->validate([
-            'catatan_admin' => 'nullable|string|max:500',
+            'catatan_admin' => 'required|string|max:500',
         ]);
 
         if (!$reservasi->isMenunggu()) {
@@ -134,7 +134,7 @@ class ReservasiController extends Controller
             'ruang_kelas_id' => 'required|exists:ruang_kelas,id',
             'tanggal'        => 'required|date|after_or_equal:today',
             'jam_mulai'      => 'required|date_format:H:i',
-            'jam_selesai'    => 'required|date_format:H:i|after:jam_mulai',
+            'jam_selesai'    => 'required|date_format:H:i|after:jam_mulai|before_or_equal:17:00',
             'keperluan'      => 'required|string|max:200',
             /**
              * BUG FIX 5: jenis_kegiatan di rules tidak include 'praktikum'
@@ -147,6 +147,8 @@ class ReservasiController extends Controller
             'keterangan'     => 'nullable|string|max:500',
             'gunakan_saran'  => 'nullable|boolean',
             'ruang_saran_id' => 'nullable|exists:ruang_kelas,id',
+        ], [
+            'jam_selesai.before_or_equal' => 'Reservasi ruangan hanya bisa sampai jam 17:00. Silakan pilih jam selesai maksimal 17:00.',
         ]);
 
         // Tentukan ruang yang akan dipakai
@@ -258,6 +260,115 @@ class ReservasiController extends Controller
         return back()->with('success', "Reservasi {$reservasi->kode_reservasi} berhasil dibatalkan.");
     }
 
+    /**
+     * BUG FIX: route 'admin.reservasi.pilihkan-ruang' menunjuk ke method ini,
+     * tapi method-nya tidak pernah dibuat -> fatal "Method does not exist"
+     * setiap admin klik "Setujui & Tetapkan Ruang Ini" di halaman detail reservasi.
+     */
+    public function pilihkanRuang(Request $request, Reservasi $reservasi)
+    {
+        $request->validate([
+            'ruang_dipilih_id' => 'required|exists:ruang_kelas,id',
+            'catatan_admin'    => 'nullable|string',
+        ]);
+
+        if (!$reservasi->isMenunggu()) {
+            return back()->with('error', 'Reservasi ini sudah diproses sebelumnya.');
+        }
+
+        // Cek ulang konflik untuk ruang yang baru dipilih sebelum menyetujui
+        $cek = $this->greedy->cekKonflik(
+            $request->ruang_dipilih_id,
+            $reservasi->tanggal->format('Y-m-d'),
+            $reservasi->jam_mulai,
+            $reservasi->jam_selesai,
+            $reservasi->id
+        );
+
+        if ($cek['konflik']) {
+            return back()->with('error', "Ruang yang dipilih tidak bisa dipakai: {$cek['detail']}");
+        }
+
+        $reservasi->update([
+            'ruang_kelas_id' => $request->ruang_dipilih_id,
+            'status'         => 'disetujui',
+            'diproses_oleh'  => Auth::id(),
+            'diproses_pada'  => now(),
+            'catatan_admin'  => $request->catatan_admin,
+        ]);
+
+        KirimNotifikasiReservasi::dispatch($reservasi, 'disetujui', $reservasi->pemohon_id);
+
+        return redirect()->route('reservasi.show', $reservasi)
+            ->with('success', "Reservasi {$reservasi->kode_reservasi} disetujui dengan ruang baru.");
+    }
+
+    /**
+     * BUG FIX: route 'admin.reservasi.saran-ruang' menunjuk ke method ini,
+     * tapi method-nya tidak pernah dibuat -> tombol "Scan Ruang Tersedia"
+     * di halaman detail reservasi admin selalu gagal (404/500).
+     * Mengembalikan status ruang asli + daftar ruang tersedia (urutan
+     * Greedy Best-Fit berdasarkan kapasitas) dan ruang yang bentrok.
+     */
+    public function apiSaranRuangAdmin(Reservasi $reservasi)
+    {
+        $ruangAsli = $reservasi->ruangKelas;
+        $tanggal   = $reservasi->tanggal->format('Y-m-d');
+
+        $cekAsli = $this->greedy->cekKonflik(
+            $ruangAsli->id,
+            $tanggal,
+            $reservasi->jam_mulai,
+            $reservasi->jam_selesai,
+            $reservasi->id
+        );
+
+        $tersedia = [];
+        $bentrok  = [];
+
+        $semuaRuang = RuangKelas::aktif()->orderBy('kapasitas', 'asc')->get();
+
+        foreach ($semuaRuang as $ruang) {
+            $cek = $this->greedy->cekKonflik(
+                $ruang->id,
+                $tanggal,
+                $reservasi->jam_mulai,
+                $reservasi->jam_selesai,
+                $reservasi->id
+            );
+
+            if ($cek['konflik']) {
+                $bentrok[] = [
+                    'id'         => $ruang->id,
+                    'kode_ruang' => $ruang->kode_ruang,
+                    'nama_ruang' => $ruang->nama_ruang,
+                    'detail'     => $cek['detail'],
+                ];
+            } else {
+                $tersedia[] = [
+                    'id'           => $ruang->id,
+                    'kode_ruang'   => $ruang->kode_ruang,
+                    'nama_ruang'   => $ruang->nama_ruang,
+                    'gedung'       => $ruang->gedung,
+                    'kapasitas'    => $ruang->kapasitas,
+                    'cukup'        => $ruang->kapasitas >= $reservasi->jumlah_peserta,
+                    'fasilitas'    => $ruang->fasilitas_list,
+                    'adalah_asli'  => $ruang->id === $ruangAsli->id,
+                    'adalah_saran' => $ruang->id === $reservasi->ruang_saran_id,
+                ];
+            }
+        }
+
+        return response()->json([
+            'ruang_asli_konflik' => $cekAsli['konflik'],
+            'ruang_asli_detail'  => $ruangAsli->kode_ruang . ' — ' .
+                ($cekAsli['konflik'] ? $cekAsli['detail'] : 'tersedia, tidak ada konflik.'),
+            'tersedia'           => $tersedia,
+            'bentrok'            => $bentrok,
+            'jumlah_peserta'     => $reservasi->jumlah_peserta,
+        ]);
+    }
+
     // ── API: cek ketersediaan real-time ───────────────────
     public function apiCekKetersediaan(Request $request)
     {
@@ -268,6 +379,20 @@ class ReservasiController extends Controller
             'jam_selesai'    => 'required|date_format:H:i',
             'jumlah_peserta' => 'nullable|integer|min:1',
         ]);
+
+        // Batas jam operasional reservasi: maksimal sampai 17:00.
+        // Diperlakukan sebagai "konflik" (bukan 422) supaya JS di reservasi/create.blade.php
+        // yang membaca field `konflik`/`detail` tetap menampilkan pesan dengan benar,
+        // alih-alih diam-diam menganggap ruang tersedia saat request gagal validasi.
+        if ($request->jam_selesai > '17:00') {
+            return response()->json([
+                'konflik'                        => true,
+                'detail'                         => 'Reservasi ruangan hanya bisa sampai jam 17:00.',
+                'saran_ruang'                     => null,
+                'rekomendasi_ruang'               => null,
+                'rekomendasi_sama_dengan_pilihan' => false,
+            ]);
+        }
 
         $cek = $this->greedy->cekKonflik(
             $request->ruang_kelas_id,

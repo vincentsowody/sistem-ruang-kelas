@@ -17,6 +17,8 @@ class User extends Authenticatable
         'role',
         'nip_nim',
         'program_studi',
+        'semester',
+        'kelas',
         'no_hp',
         'is_active',
         'admin_reset_token',
@@ -50,6 +52,22 @@ class User extends Authenticatable
     public function notifikasi()
     {
         return $this->hasMany(Notifikasi::class);
+    }
+
+    /**
+     * Jadwal kuliah milik mahasiswa ini, dicocokkan berdasarkan
+     * program_studi + semester + kelas miliknya sendiri.
+     * Ini BUKAN relasi FK biasa (mahasiswa tidak "memiliki" baris jadwal_tetap),
+     * melainkan query berdasarkan kecocokan atribut — dipakai oleh
+     * halaman "Jadwal Saya" agar mahasiswa semester 1 dan semester 3
+     * (dst) melihat jadwal yang berbeda sesuai kelasnya masing-masing.
+     */
+    public function jadwalKelasSaya()
+    {
+        return JadwalTetap::aktif()
+            ->where('program_studi', $this->program_studi)
+            ->where('semester', $this->semester)
+            ->where('kelas', $this->kelas);
     }
 
     // =====================================================
@@ -109,4 +127,3 @@ class User extends Authenticatable
         return $query->where('is_active', true);
     }
 }
-

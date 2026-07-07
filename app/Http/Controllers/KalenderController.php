@@ -116,4 +116,39 @@ class KalenderController extends Controller
     {
         return view('kalender.ruang', compact('ruang'));
     }
+
+    /**
+     * Halaman "Jadwal Saya" khusus mahasiswa.
+     * Menampilkan jadwal kuliah yang cocok dengan program_studi,
+     * semester, dan kelas milik mahasiswa yang login — bukan seluruh
+     * jadwal kampus seperti di /kalender. Ini yang membedakan tampilan
+     * mahasiswa semester 1 dengan semester 3, dst.
+     */
+    public function jadwalSaya()
+    {
+        $mahasiswa = Auth::user();
+
+        if (empty($mahasiswa->semester) || empty($mahasiswa->kelas) || empty($mahasiswa->program_studi)) {
+            return view('kalender.jadwal-saya', [
+                'belumLengkap' => true,
+                'jadwalPerHari' => collect(),
+            ]);
+        }
+
+        $jadwal = $mahasiswa->jadwalKelasSaya()
+            ->with('ruangKelas', 'dosen')
+            ->orderBy('jam_mulai')
+            ->get();
+
+        // Kelompokkan per hari agar mudah ditampilkan seperti jadwal mingguan
+        $urutanHari = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        $jadwalPerHari = collect($urutanHari)
+            ->mapWithKeys(fn ($hari) => [$hari => $jadwal->where('hari', $hari)->values()]);
+
+        return view('kalender.jadwal-saya', [
+            'belumLengkap'  => false,
+            'jadwalPerHari' => $jadwalPerHari,
+            'mahasiswa'     => $mahasiswa,
+        ]);
+    }
 }

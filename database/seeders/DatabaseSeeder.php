@@ -12,6 +12,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // ── 0. Ruang & Dosen sesuai data Excel jadwal PSTI ──
+        // Wajib dijalankan sebelum import jadwal, karena import
+        // jadwal mencocokkan nama ruang & dosen ke data ini.
+        $this->call([
+            RuangKelasSeeder::class,
+            DosenSeeder::class,
+        ]);
+
         // ── 1. Users ─────────────────────────────────────
         $admin = User::create([
             'name'          => 'Administrator',
@@ -50,7 +58,21 @@ class DatabaseSeeder extends Seeder
             'role'          => 'mahasiswa',
             'nip_nim'       => '21011001',
             'program_studi' => 'Teknik Informatika',
+            'semester'      => 1,
+            'kelas'         => 'A',
             'no_hp'         => '082211223344',
+        ]);
+
+        User::create([
+            'name'          => 'Rina Mahasiswa',
+            'email'         => 'rina@kampus.ac.id',
+            'password'      => Hash::make('password'),
+            'role'          => 'mahasiswa',
+            'nip_nim'       => '22031045',
+            'program_studi' => 'Teknik Informatika',
+            'semester'      => 5,
+            'kelas'         => 'A',
+            'no_hp'         => '082255667788',
         ]);
 
         // ── 2. Ruang Kelas ───────────────────────────────
@@ -65,17 +87,22 @@ class DatabaseSeeder extends Seeder
             ['kode_ruang' => 'SEM-1', 'nama_ruang' => 'Ruang Seminar',    'gedung' => 'Gedung C', 'lantai' => 2, 'kapasitas' => 80, 'jenis' => 'seminar',     'fasilitas' => ['proyektor', 'ac', 'sound_system', 'wifi', 'papan_tulis']],
         ];
 
+        $ruangIds = [];
         foreach ($ruangData as $data) {
-            RuangKelas::create($data);
+            $r = RuangKelas::create($data);
+            $ruangIds[$data['kode_ruang']] = $r->id;
         }
 
         // ── 3. Jadwal Tetap (contoh) ─────────────────────
+        // NB: ruang_kelas_id diambil via kode_ruang (bukan angka hardcode),
+        // karena RuangKelasSeeder di atas juga membuat baris ruang lain
+        // sehingga ID auto-increment tidak lagi mulai dari 1.
         $jadwalData = [
-            ['ruang_kelas_id' => 1, 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Pemrograman Web',         'kode_mk' => 'TI301', 'kelas' => 'A', 'program_studi' => 'Teknik Informatika', 'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'senin',  'jam_mulai' => '08:00', 'jam_selesai' => '10:30', 'sks' => 3],
-            ['ruang_kelas_id' => 2, 'dosen_id' => $dosen2->id, 'mata_kuliah' => 'Basis Data',               'kode_mk' => 'SI201', 'kelas' => 'B', 'program_studi' => 'Sistem Informasi',   'semester' => 3, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'senin',  'jam_mulai' => '10:00', 'jam_selesai' => '12:30', 'sks' => 3],
-            ['ruang_kelas_id' => 3, 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Algoritma & Pemrograman',  'kode_mk' => 'TI101', 'kelas' => 'A', 'program_studi' => 'Teknik Informatika', 'semester' => 1, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'selasa', 'jam_mulai' => '07:30', 'jam_selesai' => '09:30', 'sks' => 2],
-            ['ruang_kelas_id' => 5, 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Pemrograman Web',         'kode_mk' => 'TI301', 'kelas' => 'B', 'program_studi' => 'Teknik Informatika', 'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'rabu',   'jam_mulai' => '13:00', 'jam_selesai' => '15:30', 'sks' => 3],
-            ['ruang_kelas_id' => 4, 'dosen_id' => $dosen2->id, 'mata_kuliah' => 'Sistem Informasi',        'kode_mk' => 'SI301', 'kelas' => 'A', 'program_studi' => 'Sistem Informasi',   'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'kamis',  'jam_mulai' => '09:00', 'jam_selesai' => '11:30', 'sks' => 3],
+            ['ruang_kelas_id' => $ruangIds['R.101'], 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Pemrograman Web',         'kode_mk' => 'TI301', 'kelas' => 'A', 'program_studi' => 'Teknik Informatika', 'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'senin',  'jam_mulai' => '08:00', 'jam_selesai' => '10:30', 'sks' => 3],
+            ['ruang_kelas_id' => $ruangIds['R.102'], 'dosen_id' => $dosen2->id, 'mata_kuliah' => 'Basis Data',               'kode_mk' => 'SI201', 'kelas' => 'B', 'program_studi' => 'Sistem Informasi',   'semester' => 3, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'senin',  'jam_mulai' => '10:00', 'jam_selesai' => '12:30', 'sks' => 3],
+            ['ruang_kelas_id' => $ruangIds['R.201'], 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Algoritma & Pemrograman',  'kode_mk' => 'TI101', 'kelas' => 'A', 'program_studi' => 'Teknik Informatika', 'semester' => 1, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'selasa', 'jam_mulai' => '07:30', 'jam_selesai' => '09:30', 'sks' => 2],
+            ['ruang_kelas_id' => $ruangIds['LAB-A'], 'dosen_id' => $dosen->id,  'mata_kuliah' => 'Pemrograman Web',         'kode_mk' => 'TI301', 'kelas' => 'B', 'program_studi' => 'Teknik Informatika', 'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'rabu',   'jam_mulai' => '13:00', 'jam_selesai' => '15:30', 'sks' => 3],
+            ['ruang_kelas_id' => $ruangIds['R.202'], 'dosen_id' => $dosen2->id, 'mata_kuliah' => 'Sistem Informasi',        'kode_mk' => 'SI301', 'kelas' => 'A', 'program_studi' => 'Sistem Informasi',   'semester' => 5, 'tahun_akademik' => '2024/2025', 'semester_ganjil_genap' => 'ganjil', 'hari' => 'kamis',  'jam_mulai' => '09:00', 'jam_selesai' => '11:30', 'sks' => 3],
         ];
 
         foreach ($jadwalData as $data) {

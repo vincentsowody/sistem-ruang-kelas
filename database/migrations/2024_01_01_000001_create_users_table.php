@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role', ['admin', 'dosen', 'mahasiswa'])->default('mahasiswa');
             $table->string('nip_nim')->nullable()->comment('NIP untuk dosen/admin, NIM untuk mahasiswa');

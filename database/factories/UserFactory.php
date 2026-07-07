@@ -23,6 +23,13 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
             'remember_token' => Str::random(10),
+            // FIX: kolom `is_active` di migration default-nya true, tapi factory
+            // sebelumnya tidak menyertakannya sama sekali sehingga tersimpan NULL
+            // saat dibuat lewat User::factory(). Karena RoleMiddleware memperlakukan
+            // NULL sebagai "akun nonaktif" dan langsung redirect ke login, ini
+            // membuat test yang lupa set 'is_active' => true gagal secara
+            // membingungkan (redirect 302, bukan error yang jelas).
+            'is_active' => true,
         ];
     }
 

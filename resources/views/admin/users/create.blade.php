@@ -107,12 +107,28 @@
                     class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
+            <div id="fieldMahasiswa" class="grid grid-cols-2 gap-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Semester <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="semester" min="1" max="14" value="{{ old('semester') }}" placeholder="Contoh: 1, 3, 5"
+                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    @error('semester')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    <p class="text-xs text-gray-400 mt-1">Dipakai agar mahasiswa hanya melihat jadwal semesternya sendiri.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">
+                        Kelas <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="kelas" maxlength="5" value="{{ old('kelas') }}" placeholder="Contoh: A, B, C"
+                        class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    @error('kelas')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
             <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                {{-- Hidden fallback agar admin juga bisa membuat user langsung nonaktif
-                     (uncheck) — tanpa ini uncheck tidak berpengaruh apa pun. --}}
-                <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" id="isActive"
-                    {{ old('is_active', true) ? 'checked' : '' }}
+                <input type="checkbox" name="is_active" value="1" id="isActive" checked
                     class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                 <label for="isActive" class="text-sm text-gray-700 cursor-pointer">
                     Akun aktif (pengguna dapat login)
@@ -161,7 +177,20 @@ document.querySelectorAll('input[name="role"]').forEach(radio => {
         const c = colors[this.value];
         this.closest('label').classList.remove('border-gray-200');
         this.closest('label').classList.add(`bg-${c}-50`, `border-${c}-300`);
+        toggleFieldMahasiswa();
     });
 });
+
+// Tampilkan field Semester & Kelas hanya untuk role mahasiswa
+function toggleFieldMahasiswa() {
+    const dipilih = document.querySelector('input[name="role"]:checked');
+    const fieldMhs = document.getElementById('fieldMahasiswa');
+    if (dipilih && dipilih.value === 'mahasiswa') {
+        fieldMhs.classList.remove('hidden');
+    } else {
+        fieldMhs.classList.add('hidden');
+    }
+}
+toggleFieldMahasiswa();
 </script>
 @endsection

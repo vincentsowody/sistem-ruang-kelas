@@ -144,6 +144,46 @@ class ReservasiStoreTest extends TestCase
     }
 
     /** @test */
+    public function pengajuan_gagal_jika_jam_selesai_lewat_dari_17_00()
+    {
+        $payload = [
+            'ruang_kelas_id' => $this->ruang->id,
+            'tanggal'        => now()->addDays(1)->format('Y-m-d'),
+            'jam_mulai'      => '16:00',
+            'jam_selesai'    => '18:00', // melewati batas operasional
+            'keperluan'      => 'Test',
+            'jenis_kegiatan' => 'rapat',
+            'jumlah_peserta' => 10,
+        ];
+
+        $this->actingAs($this->dosen)
+            ->post(route('reservasi.store'), $payload)
+            ->assertSessionHasErrors('jam_selesai');
+
+        $this->assertDatabaseCount('reservasi', 0);
+    }
+
+    /** @test */
+    public function pengajuan_berhasil_jika_jam_selesai_persis_17_00()
+    {
+        $payload = [
+            'ruang_kelas_id' => $this->ruang->id,
+            'tanggal'        => now()->addDays(1)->format('Y-m-d'),
+            'jam_mulai'      => '15:00',
+            'jam_selesai'    => '17:00', // batas maksimal, harus tetap boleh
+            'keperluan'      => 'Test',
+            'jenis_kegiatan' => 'rapat',
+            'jumlah_peserta' => 10,
+        ];
+
+        $this->actingAs($this->dosen)
+            ->post(route('reservasi.store'), $payload)
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('reservasi', ['jam_selesai' => '17:00']);
+    }
+
+    /** @test */
     public function pengajuan_gagal_jika_tanggal_di_masa_lalu()
     {
         $payload = [

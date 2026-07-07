@@ -248,10 +248,11 @@
             <p class="text-[11px] text-slate-400">Fitur yang sering digunakan</p>
         </div>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         @foreach([
             [route('reservasi.create'),  'fa-plus',           'teal',   'Ajukan Reservasi',   'Pesan ruang baru'],
             [route('reservasi.index'),   'fa-list-check',     'blue',   'Riwayat Reservasi',  'Semua pengajuan'],
+            [route('mahasiswa.jadwal-saya'), 'fa-clipboard-list', 'indigo', 'Jadwal Saya',    'Jadwal kuliah Anda'],
             [route('kalender.index'),    'fa-calendar-week',  'purple', 'Lihat Kalender',     'Jadwal & ketersediaan'],
             [route('notifikasi.index'),  'fa-bell',           'amber',  'Notifikasi',         'Update reservasi'],
         ] as [$url, $ico, $color, $label, $sub])
